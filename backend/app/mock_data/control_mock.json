@@ -1,0 +1,57 @@
+{
+ "error": "",
+ "isSuccess": true,
+ "_note": "MOCK DATA - not organizer data. Set CQA_ORGANIZER_API_URL for the real API.",
+ "data": {
+  "dataset_group_id": "CONTROL",
+  "total_records": 2,
+  "records": [
+   {
+    "conversation_id": "mock-ctrl-ru-001",
+    "channel": "agent chat",
+    "language": "RU",
+    "transcript": [
+     {
+      "timestamp": "00:00",
+      "speaker": "client",
+      "text": "Как пополнить счёт?"
+     },
+     {
+      "timestamp": "00:30",
+      "speaker": "operator",
+      "text": "Здравствуйте, я Алия. Пополнить можно через Kaspi или банковским переводом."
+     },
+     {
+      "timestamp": "01:00",
+      "speaker": "operator",
+      "text": "Всего доброго!"
+     }
+    ],
+    "audio_url": null
+   },
+   {
+    "conversation_id": "mock-ctrl-en-001",
+    "channel": "agent chat",
+    "language": "EN",
+    "transcript": [
+     {
+      "timestamp": "00:00",
+      "speaker": "client",
+      "text": "What are your fees?"
+     },
+     {
+      "timestamp": "00:25",
+      "speaker": "operator",
+      "text": "Hello, I'm Tom. Fees start at 0.1% per trade."
+     },
+     {
+      "timestamp": "00:50",
+      "speaker": "operator",
+      "text": "Anything else? Goodbye!"
+     }
+    ],
+    "audio_url": null
+   }
+  ]
+ }
+}

@@ -1,0 +1,76 @@
+{
+  "conversation_id": "mock-ru-001",
+  "checklist_version": 1,
+  "source": "ai-module",
+  "model_name": "<your model>",
+  "criteria": [
+    {
+      "criterion_id": "C01",
+      "answer": "Yes",
+      "explanation": "Оператор поздоровался и представился в первом ответе.",
+      "evidence_message_ids": [
+        "m3"
+      ]
+    },
+    {
+      "criterion_id": "C02",
+      "answer": "N/A",
+      "explanation": "Клиент сразу сформулировал вопрос о тарифах — данных хватало.",
+      "evidence_message_ids": [
+        "m2"
+      ]
+    },
+    {
+      "criterion_id": "C03",
+      "answer": "N/A",
+      "explanation": "Общий вопрос о тарифах не требует идентификации.",
+      "evidence_message_ids": []
+    },
+    {
+      "criterion_id": "C04",
+      "answer": "15",
+      "explanation": "Тариф назван, но не упомянуты прочие комиссии.",
+      "evidence_message_ids": [
+        "m4"
+      ]
+    },
+    {
+      "criterion_id": "C05",
+      "answer": "Yes",
+      "explanation": "Оператор вежлив, недовольства не было.",
+      "evidence_message_ids": [
+        "m3",
+        "m4"
+      ]
+    },
+    {
+      "criterion_id": "C06",
+      "answer": "10",
+      "explanation": "Ответы ясные и последовательные.",
+      "evidence_message_ids": [
+        "m4"
+      ]
+    },
+    {
+      "criterion_id": "C07",
+      "answer": "No",
+      "explanation": "Оператор не подвёл итог разговора перед закрытием чата.",
+      "evidence_message_ids": [
+        "m6",
+        "m7"
+      ]
+    },
+    {
+      "criterion_id": "C08",
+      "answer": "No",
+      "explanation": "Грубых ошибок не выявлено.",
+      "evidence_message_ids": []
+    }
+  ],
+  "gross_error": false,
+  "metadata": {
+    "prompt_version": "v3",
+    "latency_ms": 4200,
+    "cost_usd": 0.004
+  }
+}

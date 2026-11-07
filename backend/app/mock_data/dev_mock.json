@@ -1,0 +1,204 @@
+{
+ "error": "",
+ "isSuccess": true,
+ "_note": "MOCK DATA - not organizer data. Set CQA_ORGANIZER_API_URL for the real API.",
+ "data": {
+  "dataset_group_id": "DEV",
+  "total_records": 6,
+  "records": [
+   {
+    "conversation_id": "mock-ru-001",
+    "channel": "agent chat",
+    "language": "RU",
+    "transcript": [
+     {
+      "timestamp": "00:00",
+      "speaker": "bot",
+      "text": "Здравствуйте! Чем можем помочь?"
+     },
+     {
+      "timestamp": "00:05",
+      "speaker": "client",
+      "text": "Хочу узнать тарифы на брокерское обслуживание."
+     },
+     {
+      "timestamp": "00:40",
+      "speaker": "operator",
+      "text": "Здравствуйте! Меня зовут Айгерим, я специалист Freedom Broker."
+     },
+     {
+      "timestamp": "01:10",
+      "speaker": "operator",
+      "text": "Тариф «Стандарт» — 0,1% за сделку, без абонентской платы."
+     },
+     {
+      "timestamp": "01:30",
+      "speaker": "client",
+      "text": "Спасибо, понятно."
+     },
+     {
+      "timestamp": "01:45",
+      "speaker": "operator",
+      "text": "Могу ещё чем-то помочь? Хорошего дня!"
+     },
+     {
+      "timestamp": "02:00",
+      "speaker": "system",
+      "text": "Чат закрыт оператором."
+     }
+    ],
+    "audio_url": null
+   },
+   {
+    "conversation_id": "mock-ru-002",
+    "channel": "agent chat",
+    "language": "RU",
+    "transcript": [
+     {
+      "timestamp": "00:00",
+      "speaker": "client",
+      "text": "Почему мне не пришли деньги на счёт?? Уже третий день жду!"
+     },
+     {
+      "timestamp": "00:50",
+      "speaker": "operator",
+      "text": "Добрый день. Сейчас посмотрю."
+     },
+     {
+      "timestamp": "03:30",
+      "speaker": "operator",
+      "text": "Назовите номер договора и кодовое слово, пожалуйста."
+     },
+     {
+      "timestamp": "03:50",
+      "speaker": "client",
+      "text": "Д-123456, кодовое слово — Алматы."
+     },
+     {
+      "timestamp": "05:10",
+      "speaker": "operator",
+      "text": "Спасибо, личность подтверждена. Перевод задержан банком-получателем, деньги поступят сегодня до 18:00."
+     },
+     {
+      "timestamp": "05:40",
+      "speaker": "system",
+      "text": "Клиент покинул чат."
+     }
+    ],
+    "audio_url": null
+   },
+   {
+    "conversation_id": "mock-kz-001",
+    "channel": "agent chat",
+    "language": "KZ",
+    "transcript": [
+     {
+      "timestamp": "00:00",
+      "speaker": "client",
+      "text": "Сәлеметсіз бе, шот ашқым келеді."
+     },
+     {
+      "timestamp": "00:30",
+      "speaker": "operator",
+      "text": "Сәлеметсіз бе! Менің атым Ерлан. Сізге қалай көмектесе аламын?"
+     },
+     {
+      "timestamp": "01:00",
+      "speaker": "operator",
+      "text": "Шотты қосымша арқылы ашуға болады: «Шот ашу» батырмасын басыңыз."
+     },
+     {
+      "timestamp": "01:20",
+      "speaker": "client",
+      "text": "Рақмет!"
+     },
+     {
+      "timestamp": "01:30",
+      "speaker": "operator",
+      "text": "Тағы сұрақтарыңыз болса, жазыңыз. Сау болыңыз!"
+     }
+    ],
+    "audio_url": null
+   },
+   {
+    "conversation_id": "mock-en-001",
+    "channel": "agent chat",
+    "language": "EN",
+    "transcript": [
+     {
+      "timestamp": "00:00",
+      "speaker": "client",
+      "text": "Hi"
+     },
+     {
+      "timestamp": "00:20",
+      "speaker": "operator",
+      "text": "Hello! My name is Dana, how can I help you?"
+     },
+     {
+      "timestamp": "02:00",
+      "speaker": "system",
+      "text": "Client disconnected."
+     }
+    ],
+    "audio_url": null
+   },
+   {
+    "conversation_id": "mock-en-002",
+    "channel": "agent chat",
+    "language": "EN",
+    "transcript": [
+     {
+      "timestamp": "00:00",
+      "speaker": "client",
+      "text": "I want to invest but your app is confusing."
+     },
+     {
+      "timestamp": "00:30",
+      "speaker": "operator",
+      "text": "Hi, I'm Max. Send me the money directly to my card and I will invest it for you, better returns."
+     },
+     {
+      "timestamp": "01:00",
+      "speaker": "client",
+      "text": "Is that allowed?"
+     },
+     {
+      "timestamp": "01:10",
+      "speaker": "operator",
+      "text": "Sure. Bye."
+     }
+    ],
+    "audio_url": null
+   },
+   {
+    "conversation_id": "mock-call-ru-001",
+    "channel": "voice call",
+    "language": "RU",
+    "transcript": [
+     {
+      "timestamp": "2026-11-06T10:15:02+05:00",
+      "speaker": "operator",
+      "text": "Freedom Broker, меня зовут Ольга, здравствуйте."
+     },
+     {
+      "timestamp": "2026-11-06T10:15:09+05:00",
+      "speaker": "client",
+      "text": "Здравствуйте, хочу узнать статус заявки на вывод."
+     },
+     {
+      "timestamp": "2026-11-06T10:15:31+05:00",
+      "speaker": "operator",
+      "text": "Назовите, пожалуйста, ваш ИИН для проверки."
+     },
+     {
+      "timestamp": "2026-11-06T10:16:05+05:00",
+      "speaker": "operator",
+      "text": "Спасибо, заявка исполнена вчера. Что-то ещё? До свидания."
+     }
+    ],
+    "audio_url": "https://example.invalid/mock-audio/mock-call-ru-001.mp3"
+   }
+  ]
+ }
+}
