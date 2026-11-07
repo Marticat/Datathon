@@ -28,11 +28,13 @@ export function normalizeConversations(input,groupId='UPLOAD') {
     if(!Array.isArray(c.transcript)||!c.transcript.length||c.transcript.length>3000)fail('Транскрипт должен содержать реплики.');
     const transcript=c.transcript.map((m,i)=>{
       if(!['client','operator','bot','system'].includes(m.speaker))fail('Неизвестная роль реплики.');
-      return {id:`m${i+1}`,speaker:m.speaker,timestamp:text(m.timestamp,'timestamp',100),text:text(m.text,'Текст реплики',30000)};
+      const timing={};if(m.startSec!=null||m.endSec!=null){if(c.channel!=='voice call'||!Number.isFinite(m.startSec)||!Number.isFinite(m.endSec)||m.startSec<0||m.endSec<m.startSec||m.endSec>7200)fail('Некорректная привязка реплики к записи.');Object.assign(timing,{startSec:m.startSec,endSec:m.endSec});}
+      return {id:`m${i+1}`,speaker:m.speaker,timestamp:text(m.timestamp,'timestamp',100),text:text(m.text,'Текст реплики',30000),...timing};
     });
     let audio_url=c.audio_url||null;
     if(audio_url) {try{const u=new URL(audio_url);if(!['http:','https:'].includes(u.protocol))throw Error();}catch{fail('Некорректная ссылка на аудио.');}}
     const normalized={conversation_id:id,channel:c.channel,language:c.language,transcript,audio_url};
+    if(c.durationSec!=null){if(c.channel!=='voice call'||!Number.isFinite(c.durationSec)||c.durationSec<=0||c.durationSec>7200||transcript.some(m=>m.endSec>c.durationSec+.1))fail('Некорректная длительность записи.');normalized.durationSec=c.durationSec;}
     return {...normalized,groupId,hash:hash(normalized)};
   });
 }

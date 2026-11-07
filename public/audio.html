@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CQA · Аудио и расшифровка</title>
+  <link rel="stylesheet" href="/cqa.css">
+  <link rel="stylesheet" href="/audio.css">
+  <script type="module" src="/audio.js"></script>
+</head>
+<body>
+  <div class="audio-page">
+    <header class="audio-header">
+      <a class="audio-brand" href="/">CQA <span>Контроль качества</span></a>
+      <a href="/">← К диалогам и оценке</a>
+    </header>
+    <main>
+      <div class="audio-intro">
+        <p class="eyebrow">ОТ ЗАПИСИ К ПРОВЕРЯЕМОЙ ОЦЕНКЕ</p>
+        <h1>Сначала услышать. Затем оценить.</h1>
+        <p>Загрузите запись, проверьте текст и укажите роли голосов. Каждая реплика сохранит связь с исходным аудио.</p>
+      </div>
+      <ol class="audio-steps" aria-label="Порядок работы">
+        <li><b>1</b> Загрузить аудио</li><li><b>2</b> Проверить текст и роли</li><li><b>3</b> Перейти к оценке</li>
+      </ol>
+      <div class="audio-layout">
+        <aside class="audio-sidebar">
+          <section class="audio-card" aria-labelledby="upload-heading">
+            <h2 id="upload-heading">Новая запись</h2>
+            <form id="upload-form">
+              <label class="audio-file">Аудиофайл
+                <input id="audio-file" name="audio" type="file" accept=".ogg,.mp3,.wav,.m4a,.flac,.webm,audio/*" required aria-describedby="file-help">
+              </label>
+              <p id="file-help" class="audio-help">OGG, MP3, WAV, M4A, FLAC или WebM.<br>До 80 МБ и 20 минут.</p>
+              <label>Язык записи<select id="upload-language"><option value="auto">Определить автоматически</option><option value="RU">Русский</option><option value="KZ">Қазақша</option><option value="EN">English</option></select></label>
+              <label>Количество голосов<select id="upload-speakers"><option value="auto">Определить автоматически</option><option value="1">1 голос</option><option value="2">2 голоса</option><option value="3">3 голоса</option><option value="4">4 голоса</option></select></label>
+              <button class="audio-primary" id="upload-button" type="submit">Загрузить и расшифровать</button>
+              <p class="audio-help">Обработка выполняется локально. Короткая запись с одним голосом тоже подходит. Распознавание может занять несколько минут.</p>
+            </form>
+            <p id="upload-status" class="audio-status" role="status" aria-live="polite"></p>
+          </section>
+          <section class="audio-card" aria-labelledby="jobs-heading">
+            <div class="audio-heading-row"><h2 id="jobs-heading">Записи</h2><button id="refresh-jobs" class="audio-quiet" type="button">Обновить</button></div>
+            <p id="jobs-status" class="audio-help" role="status"></p>
+            <ul id="jobs-list" class="audio-jobs"></ul>
+          </section>
+        </aside>
+        <section class="audio-workspace" aria-label="Проверка расшифровки">
+          <div id="empty-state" class="audio-card audio-empty">
+            <span class="audio-empty-mark" aria-hidden="true">↗</span>
+            <h2>Здесь появится расшифровка</h2>
+            <p>Выберите запись слева или загрузите новую. Голоса определяются по звучанию; роли оператора и клиента подтверждаете вы.</p>
+            <p class="audio-help">Неясные и одновременные реплики останутся отмечены для проверки.</p>
+          </div>
+          <div id="job-panel" hidden>
+            <section class="audio-card audio-job-head">
+              <p class="eyebrow">ЗАПИСЬ ДЛЯ ПРОВЕРКИ</p>
+              <h2 id="job-name"></h2>
+              <p id="job-status" role="status" aria-live="polite"></p>
+              <progress id="job-progress" max="100" aria-label="Обработка аудио" hidden></progress>
+              <p id="job-error" class="audio-error" role="alert" hidden></p>
+              <audio id="source-audio" controls preload="metadata" aria-label="Запись для проверки расшифровки"></audio>
+              <p class="audio-help">Таймкоды привязаны к записи для проверки; оригинал можно скачать.</p>
+              <a id="download-original" class="audio-original-link" download>Скачать оригинал</a>
+              <p id="playback-status" class="audio-help" role="status"></p>
+            </section>
+            <div id="review-panel" hidden>
+              <section class="audio-card">
+                <div class="audio-heading-row"><h2>Роли голосов</h2><span id="source-meta" class="audio-help"></span></div>
+                <p class="audio-help">Прослушайте запись и назначьте роли. Роль не определяется автоматически. Если система объединила разных людей в один голос, укажите роль отдельно у каждой реплики.</p>
+                <div id="speaker-roles" class="audio-role-grid"></div>
+                <label class="audio-review-language">Язык для оценки<select id="review-language"><option value="">Подтвердите язык</option><option value="RU">Русский</option><option value="KZ">Қазақша</option><option value="EN">English</option></select></label>
+              </section>
+              <section class="audio-card">
+                <div class="audio-heading-row"><h2>Полная расшифровка</h2><span id="segment-count" class="audio-help"></span></div>
+                <p class="audio-help">Нажмите время, чтобы услышать источник. Исправьте текст, голос или роль. Если внутри одной реплики сменился говорящий, нажмите «Разделить». Снимите «Включить», чтобы исключить реплику из оценки.</p>
+                <ol id="transcript" class="audio-transcript"></ol>
+              </section>
+              <section class="audio-card audio-review-actions">
+                <label class="audio-confirm"><input id="review-confirm" type="checkbox"><span>Я проверил(а) текст и роли включённых реплик.</span></label>
+                <div class="audio-buttons"><button id="publish-review" class="audio-primary" type="button">Подтвердить и перейти к оценке</button><button id="save-draft" type="button">Сохранить черновик</button><button id="download-text" type="button">Скачать текст</button></div>
+                <p id="review-status" class="audio-status" role="status" aria-live="polite"></p>
+                <a id="evaluation-link" class="audio-result-link" hidden>Открыть диалог и оценить →</a>
+                <p class="audio-help">Оценка запускается в карточке диалога. Сохранение черновика не запускает оценку.</p>
+              </section>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+    <footer>Текст можно исправить. Источник всегда остаётся доступным для проверки.</footer>
+  </div>
+</body>
+</html>

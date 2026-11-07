@@ -8,7 +8,7 @@
     "start": "node --env-file-if-exists=.env server/index.mjs",
     "dev": "node --env-file-if-exists=.env --watch server/index.mjs",
     "test": "node --test",
-    "check": "node --check server/index.mjs && node --check public/app.js && node --check public/cqa.js && node --check public/cqa-api.js && node --check public/cqa-init.js",
+    "check": "node --check server/index.mjs && node --check public/app.js && node --check public/cqa.js && node --check public/cqa-api.js && node --check public/cqa-init.js && node --check public/audio.js",
     "evaluate": "node --env-file-if-exists=.env scripts/evaluate.mjs"
   }
 }

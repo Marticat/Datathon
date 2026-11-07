@@ -8,6 +8,8 @@ export class Store {
     if(existsSync(file))this.state=JSON.parse(readFileSync(file,'utf8'));
     else {const rubric=defaultRubric();rubric.hash=hash(rubric.criteria);this.state={conversations:[],rubrics:[rubric],evaluations:[],appeals:[],jobs:[],settings:{model:process.env.OLLAMA_MODEL||'qwen3.5:9b',ollamaUrl:process.env.OLLAMA_URL||'http://127.0.0.1:11434'}};this.save();}
     // Resume interrupted jobs. Completed results are retained and never replayed.
+    this.state.audioJobs??=[];
+    for(const job of this.state.audioJobs)if(job.status==='running'){job.status='queued';job.stage='queued';}
     for(const job of this.state.jobs)if(job.status==='running'){job.status='queued';job.currentConversationId=null;}
     this.state.settings.ollamaUrl=process.env.OLLAMA_URL||'http://127.0.0.1:11434';this.save();
   }

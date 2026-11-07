@@ -1,5 +1,6 @@
 import { validateAnswers } from './domain.mjs';
-export const PROMPT_VERSION='cqa-2026-11-08-v2';
+import { reviewDefaultCriteria } from './criterion-review.mjs';
+export const PROMPT_VERSION='cqa-2026-11-08-v3-focused';
 export function buildRequest(conversation,rubric,model) {
   const properties={};
   for(const c of rubric.criteria){
@@ -46,7 +47,15 @@ export async function evaluateLocal(conversation,rubric,settings,fetcher=fetch) 
   try {parsed=JSON.parse(data.message?.content||'');}catch{throw new Error('Модель вернула некорректный JSON. Оценка не сохранена; повторите запрос.');}
   if(!parsed.criteria||typeof parsed.criteria!=='object'||Array.isArray(parsed.criteria))throw new Error('Модель не вернула оценки критериев.');
   const answers=Object.entries(parsed.criteria).map(([criterionId,value])=>({criterionId,...value}));
-  return {answers:validateAnswers(rubric,conversation,answers),usage:{promptTokens:data.prompt_eval_count??null,outputTokens:data.eval_count??null,totalDurationNs:data.total_duration??null},promptVersion:PROMPT_VERSION,...provenance};
+  const baseline=validateAnswers(rubric,conversation,answers);
+  const review=await reviewDefaultCriteria(conversation,rubric,settings,{fetcher});
+  const overrides=new Map(review.answers.map(a=>[a.criterionId,a]));
+  const finalAnswers=validateAnswers(rubric,conversation,baseline.map(a=>overrides.get(a.criterionId)||a));
+  const finalProvenance=await localModelInfo(settings,fetcher);
+  if(finalProvenance.modelDigest!==provenance.modelDigest)throw new Error('Модель изменилась во время проверки. Повторите оценку.');
+  const inferenceStages=[{stage:'full-rubric',usage:{promptTokens:data.prompt_eval_count??null,outputTokens:data.eval_count??null,totalDurationNs:data.total_duration??null}},...review.stages.map(s=>({stage:review.mode,...s}))];
+  const usage=Object.fromEntries(['promptTokens','outputTokens','totalDurationNs'].map(key=>[key,inferenceStages.reduce((total,s)=>total+(s.usage[key]||0),0)]));
+  return {answers:finalAnswers,usage,inferenceStages,pipelineVersion:review.answers.length?review.mode:'full-rubric-only',promptVersion:PROMPT_VERSION,...provenance};
 }
 export async function modelStatus(settings) {
   try {const response=await fetch(new URL('/api/tags',settings.ollamaUrl),{signal:AbortSignal.timeout(3000)});if(!response.ok)throw Error();const data=await response.json();return {online:true,models:(data.models||[]).filter(m=>!m.remote_host&&!m.remote_model&&!/cloud/i.test(m.name)).map(m=>m.name)};}

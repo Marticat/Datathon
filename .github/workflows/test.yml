@@ -10,3 +10,7 @@ jobs:
           node-version: '22'
       - run: npm test
       - run: npm run check
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest discover -s test -p audio_alignment_test.py

@@ -16,7 +16,7 @@ function relativeTime(timestamp,first){if(/^\d{4}-/.test(timestamp))return Math.
 export function toBootstrap(state,group,rubricId) {
  const rubric=state.rubrics.find(r=>r.id===rubricId)||state.rubrics.at(-1),checklist=toChecklist(rubric),results={},appeals={},evaluations={};
  const conversations=state.conversations.filter(c=>!group||c.groupId===group);
- const dialogs=conversations.map(c=>{const raw=c.transcript.map(m=>[relativeTime(m.timestamp,c.transcript[0].timestamp),m.speaker,m.text,m.timestamp]);return {id:c.conversation_id,hash:c.hash,seekable:c.transcript.every(m=>/^\d+:\d{2}(?::\d{2})?$/.test(m.timestamp)),lang:c.language,channel:c.channel,audio:c.audio_url,raw,duration:Math.max(...raw.map(m=>m[0]),1),operator:''};});
+ const dialogs=conversations.map(c=>{const raw=c.transcript.map(m=>[Number.isFinite(m.startSec)?m.startSec:relativeTime(m.timestamp,c.transcript[0].timestamp),m.speaker,m.text,m.timestamp]);return {id:c.conversation_id,hash:c.hash,seekable:c.transcript.every(m=>Number.isFinite(m.startSec)||/^\d+:\d{2}(?:\.\d{1,3})?$/.test(m.timestamp)),lang:c.language,channel:c.channel,audio:c.audio_url,raw,duration:c.durationSec||Math.max(...raw.map(m=>m[0]),1),operator:''};});
  for(const c of conversations){
   const e=state.evaluations.filter(e=>e.conversationId===c.conversation_id&&e.conversationHash===c.hash&&e.rubricId===rubric.id).at(-1);if(!e)continue;
   const dialog=dialogs.find(d=>d.id===c.conversation_id);

@@ -93,7 +93,7 @@
       return api('GET', '/api/bootstrap?group=' + encodeURIComponent(group || '')).then(function (data) {
         state.group = data.group; state.checklist = data.checklist; state.draft = null; state.jobs = data.jobs || [];
         state.dialogs = data.dialogs.map(prep); state.results = data.results || {}; state.appeals = data.appeals || {};
-        state.did = state.dialogs.length ? state.dialogs[0].id : null;
+        state.did = state.dialogs.some(function (d) {return d.id===opts.dialog;}) ? opts.dialog : state.dialogs.length ? state.dialogs[0].id : null;
         state.t = 0; state.hl = null; state.form = null; state.loading = false;
         setAudio(dlg(state.did)); render();
       }).catch(function (e) { state.loading = false; state.loadErr = e.message; render(); });
@@ -192,6 +192,7 @@
       }
       return '<nav class="cqa-nav" aria-label="Разделы CQA"><div class="cqa-brand">CQA</div>' +
         it('dialogs', 'Диалоги') + it('checklist', 'Чек-листы') + it('appeals', 'Апелляции', n || '') +
+        '<a class="cqa-nav-item" href="/audio">Загрузить аудио ↗</a>' +
         '<a class="cqa-nav-item" href="/classic">Модель, импорт и история ↗</a><a class="cqa-nav-item" href="/api/export" download>Экспорт JSON ↓</a>' +
         '<div class="cqa-group"><label class="cqa-role-l" for="cqa-group">Набор данных</label>' +
         '<input id="cqa-group" class="cqa-in" type="text" value="' + esc(state.group) + '" placeholder="group_id">' +
