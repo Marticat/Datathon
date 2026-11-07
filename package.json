@@ -1,0 +1,14 @@
+{
+  "name": "cqa-datathon",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=20.20"},
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server/index.mjs",
+    "dev": "node --env-file-if-exists=.env --watch server/index.mjs",
+    "test": "node --test",
+    "check": "node --check server/index.mjs && node --check public/app.js",
+    "evaluate": "node --env-file-if-exists=.env scripts/evaluate.mjs"
+  }
+}
