@@ -1,45 +1,13 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" data-theme="light">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#163b31">
-  <title>CQA — рабочее место контроля качества</title>
-  <link rel="stylesheet" href="/styles.css">
-  <script src="/app.js" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CQA · Контроль качества диалогов</title>
+<link rel="stylesheet" href="/cqa.css">
+<link rel="stylesheet" href="/cqa-extra.css">
+<script src="/cqa.js" defer></script>
+<script src="/cqa-init.js" type="module"></script>
 </head>
-<body>
-  <aside class="sidebar">
-    <a class="brand" href="/" aria-label="CQA Freedom"><span class="brand-mark">C<span>QA</span><i></i></span><span class="brand-by">FREEDOM · QUALITY INTELLIGENCE</span></a>
-    <div class="workspace-label">РАБОЧЕЕ ПРОСТРАНСТВО</div>
-    <nav aria-label="Основная навигация">
-      <button class="nav-item active" id="nav-workspace"><span aria-hidden="true">▤</span> Проверка диалогов <span class="nav-dot"></span></button>
-      <button class="nav-item" id="nav-rubric"><span aria-hidden="true">☷</span> Критерии оценки</button>
-      <button class="nav-item" id="nav-settings"><span aria-hidden="true">⚙</span> Локальная модель</button>
-    </nav>
-    <div class="sidebar-note"><span class="small-caps">ПОД КОНТРОЛЕМ</span><p>От реплики<br>к обоснованной оценке.</p><span>Критерии, доказательства<br>и решения в одном месте.</span></div>
-    <div class="sidebar-bottom"><span class="privacy-icon" aria-hidden="true">⌂</span><div><strong>Данные остаются у вас</strong><span>Локальный AI · без облака</span></div></div>
-  </aside>
-  <main class="main-shell">
-    <header class="topbar"><div class="breadcrumb">Контроль качества <span>/</span> Диалоги</div><button class="model-status" id="model-status" title="Настройки локальной модели"><i class="status-dot"></i><span>Проверяем модель…</span></button></header>
-    <section class="page-heading"><div><div class="eyebrow">CONVERSATION QUALITY ASSURANCE</div><h1>Каждый диалог имеет значение<span>.</span></h1><p>Оценивайте сервис. Проверяйте доказательства. Принимайте решения.</p></div><div class="heading-actions"><a class="button button-quiet" href="/api/export" download>↓ <span>Экспорт JSON</span></a><button class="button button-primary" id="open-import">＋ Импорт диалогов</button></div></section>
-    <div id="notice" class="notice" role="status" hidden></div>
-    <section class="workspace-toolbar" aria-label="Параметры проверки"><div class="rubric-control"><span class="field-caption">ЧЕК-ЛИСТ</span><select id="rubric-select" aria-label="Версия чек-листа"></select><button class="icon-button" id="edit-rubric" title="Создать новую версию чек-листа" aria-label="Редактировать чек-лист">↗</button></div><div class="toolbar-note"><i class="status-dot green"></i> Оценка опирается на реплики диалога</div><button class="button button-small" id="refresh">↻ Обновить</button></section>
-    <section id="jobs" class="jobs" aria-label="Пакетные проверки" hidden></section>
-    <div class="workbench">
-      <section class="conversation-pane" aria-label="Список диалогов">
-        <div class="pane-title"><h2>Диалоги <span id="conversation-count" class="count">0</span></h2><label class="select-all" title="Выбрать все видимые диалоги"><input type="checkbox" id="select-all"> Все</label></div>
-        <div class="filters"><label class="search-box"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Найти диалог или реплику" aria-label="Поиск диалогов"></label><div class="filter-row"><select id="language-filter" aria-label="Язык"><option value="">Все языки</option><option value="RU">Русский</option><option value="KZ">Қазақша</option><option value="EN">English</option></select><select id="channel-filter" aria-label="Канал"><option value="">Все каналы</option><option value="agent chat">Чат</option><option value="voice call">Звонок</option></select></div></div>
-        <div id="conversation-list" class="conversation-list"></div>
-        <div class="batch-bar"><span id="selected-count">Нет выбранных</span><button class="button button-small button-primary" id="start-batch" disabled>Проверить выбранные</button></div>
-      </section>
-      <section class="transcript-pane" aria-label="Транскрипт диалога"><div id="transcript"></div></section>
-      <section class="review-pane" aria-label="Оценка качества"><div id="review"></div></section>
-    </div>
-    <footer class="page-footer"><span>CQA / FREEDOM</span><span>Прозрачная оценка. Осмысленный контроль.</span></footer>
-  </main>
-  <dialog id="import-dialog"><div class="dialog-heading"><div><div class="eyebrow">ДАННЫЕ ДЛЯ ПРОВЕРКИ</div><h2>Импорт диалогов</h2></div><button class="icon-button" data-close aria-label="Закрыть">✕</button></div><p class="muted">Загрузите группу организатора или JSON с диалогами. Исходные реплики и временные отметки сохраняются.</p><form id="organizer-form"><label class="field-label" for="group-id">Группа организатора</label><div class="inline-form"><input id="group-id" value="DEV" required maxlength="100"><button class="button button-primary" type="submit">Импортировать группу</button></div><p id="dataset-status" class="form-hint"></p></form><div class="or-divider">или загрузите файл</div><form id="upload-form"><label class="upload-zone" for="json-file"><span class="upload-icon">↥</span><strong>Выберите JSON с диалогами</strong><span>Массив записей или JSON организатора</span><input id="json-file" type="file" accept=".json,application/json" required></label><button class="button button-primary full-width" type="submit">Загрузить файл</button></form><p id="import-error" class="form-error" role="alert"></p></dialog>
-  <dialog id="rubric-dialog" class="rubric-dialog"><div class="dialog-heading"><div><div class="eyebrow">ВЕРСИОНИРУЕМЫЙ ЧЕК-ЛИСТ</div><h2>Новая версия критериев</h2></div><button class="icon-button" data-close aria-label="Закрыть">✕</button></div><p class="muted">Изменения сохраняются как новая версия. Ранее выполненные оценки остаются связанными со своим чек-листом.</p><form id="rubric-form"><label class="field-label" for="rubric-name">Название чек-листа</label><input id="rubric-name" required maxlength="200"><div id="criteria-editor"></div><button type="button" class="button" id="add-criterion">＋ Добавить критерий</button><p id="rubric-error" class="form-error" role="alert"></p><div class="dialog-footer"><span class="form-hint">Для новой версии потребуется новая AI-оценка.</span><button type="submit" class="button button-primary">Сохранить новую версию</button></div></form></dialog>
-  <dialog id="settings-dialog"><div class="dialog-heading"><div><div class="eyebrow">ЛОКАЛЬНЫЙ ИНФЕРЕНС</div><h2>Модель и подключение</h2></div><button class="icon-button" data-close aria-label="Закрыть">✕</button></div><div id="health-details"></div><form id="settings-form"><label class="field-label" for="model-select">Установленная модель Ollama</label><select id="model-select" required></select><p class="form-hint">Оценки сохраняют имя модели, версию промпта и версию чек-листа.</p><p id="settings-error" class="form-error" role="alert"></p><div class="dialog-footer"><button type="button" class="button" id="health-refresh">↻ Проверить подключение</button><button type="submit" class="button button-primary">Сохранить модель</button></div></form></dialog>
-</body>
+<body><div class="host-page"><div class="host-frame"><div id="cqa-root"></div></div></div></body>
 </html>

@@ -1,0 +1,52 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { defaultRubric } from '../server/rubric.mjs';
+import { toChecklist, toRubric, toBootstrap, createArchiveApi } from '../public/cqa-api.js';
+test('new frontend preserves official scales, NA rules and separate gross flag',()=>{
+ const r=defaultRubric(),c=toChecklist(r),back=toRubric(c);
+ assert.deepEqual(back.criteria,r.criteria);assert.deepEqual(c.criteria[5].steps,[10,7,4,0]);assert.equal(c.criteria[7].gross,true);
+});
+const conversation={conversation_id:'a',hash:'current',groupId:'DEV',language:'KZ',channel:'voice call',audio_url:null,transcript:[{id:'m1',speaker:'operator',timestamp:'2026-01-01T10:00:00Z',text:'Сәлем!'},{id:'m2',speaker:'client',timestamp:'2026-01-01T10:00:10Z',text:'Рақмет!'}]};
+function state(){return {conversations:[conversation],rubrics:[defaultRubric()],evaluations:[],appeals:[],jobs:[]};}
+test('bootstrap never reuses another rubric version or historical transcript',()=>{
+ const s=state();s.evaluations=[{id:'old',conversationId:'a',rubricId:s.rubrics[0].id,conversationHash:'old',answers:[]}];
+ const b=toBootstrap(s,'DEV');assert.deepEqual(b.results,{});assert.equal(b.dialogs[0].raw[1][0],10);assert.equal(b.dialogs[0].raw[1][3],conversation.transcript[1].timestamp);
+});
+test('all evidence IDs and evaluation identity survive conversion',()=>{
+ const s=state();s.evaluations=[{id:'e1',conversationId:'a',rubricId:s.rubrics[0].id,conversationHash:'current',createdAt:'now',answers:[{criterionId:'c1',answer:'yes',explanation:'Причина',evidenceIds:['m1','m2'],checkedRange:null}]}];
+ s.appeals=[{id:'ap1',evaluationId:'e1',criterionId:'c1',comment:'Спор',createdAt:'now',status:'resolved',decision:{answer:'no',reason:'Решение',createdAt:'now'}}];
+ const b=toBootstrap(s,'DEV');assert.equal(b.results.a.c1.v,1);assert.deepEqual(b.results.a.c1.evidence,[0,1]);assert.equal(b.appeals['a|c1'].id,'ap1');assert.equal(b.appeals['a|c1'].dec.v,0);
+});
+test('single evaluation queues durable server job and maps original answers',async()=>{
+ const s=state();let queued=false;const seen=[];
+ const api=createArchiveApi({pause:async()=>{},fetcher:async(path,options={})=>{
+  seen.push(path);let body;
+  if(path==='/api/jobs'){queued=true;body={id:'j1'};}
+  else {if(queued){s.jobs=[{id:'j1',status:'completed',results:[{conversationId:'a',evaluationId:'e1'}]}];s.evaluations=[{id:'e1',conversationId:'a',conversationHash:'current',rubricId:s.rubrics[0].id,answers:[{criterionId:'c6',answer:7,explanation:'Ясно',evidenceIds:['m1']}]}];}body=s;}
+  return new Response(JSON.stringify(body));
+ }});
+ await api('GET','/api/bootstrap?group=DEV');const result=await api('POST','/api/evaluate',{dialogId:'a'});
+ assert.equal(result.results.c6.v,7);assert.ok(seen.includes('/api/jobs'));assert.ok(!seen.includes('/api/evaluate'));
+});
+test('another open appeal preserves the previously reviewed answer',()=>{
+ const s=state();s.evaluations=[{id:'e',conversationId:'a',conversationHash:'current',rubricId:s.rubrics[0].id,answers:[{criterionId:'c1',answer:'yes',explanation:'Original',evidenceIds:['m1']}],reviewedAnswers:[{criterionId:'c1',answer:'no'}]}];
+ s.appeals=[{id:'open',evaluationId:'e',criterionId:'c1',status:'open',comment:'Again'}];
+ const b=toBootstrap(s,'DEV');assert.equal(b.results.a.c1.v,1);assert.equal(b.results.a.c1.finalValue,0);assert.equal(b.appeals['a|c1'].dec,null);
+});
+test('calendar timestamps have no invented audio alignment',()=>{
+ const b=toBootstrap(state(),'DEV');assert.equal(b.dialogs[0].seekable,false);assert.equal(b.dialogs[0].raw[0][3],conversation.transcript[0].timestamp);
+});
+test('polling keeps an explicit rubric and stale transcript cannot enqueue',async()=>{
+ const s=state(),old=s.rubrics[0];s.rubrics.push({...old,id:'new',version:2});let writes=0;
+ const api=createArchiveApi({fetcher:async(path)=>{if(path!=='/api/state')writes++;return new Response(JSON.stringify(s));}});
+ const b=await api('GET',`/api/bootstrap?group=DEV&rubricId=${old.id}`);assert.equal(b.checklist.id,old.id);
+ await assert.rejects(()=>api('POST','/api/evaluate',{dialogId:'a',hashes:{a:'stale'}}),/Транскрипт изменился/);assert.equal(writes,0);
+});
+test('batch schedules every dialog in one durable server request',async()=>{
+ const s=state();s.conversations.push({...conversation,conversation_id:'b'});let posted;
+ const api=createArchiveApi({pause:async()=>{},fetcher:async(path,opts={})=>{
+  if(path==='/api/jobs'){posted=JSON.parse(opts.body);s.jobs=[{id:'batch',status:'completed',results:[{conversationId:'a',error:'Test failure'},{conversationId:'b',error:'Test failure'}]}];return new Response(JSON.stringify({id:'batch'}));}
+  return new Response(JSON.stringify(s));
+ }});
+ await api('GET','/api/bootstrap?group=DEV');const result=await api('POST','/api/batch',{dialogIds:['a','b']});assert.deepEqual(posted.conversationIds,['a','b']);assert.equal(result.errors.length,2);
+});

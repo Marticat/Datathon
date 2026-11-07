@@ -1,0 +1,21 @@
+/* Дополнения к cqa.css под серверную версию */
+body { margin: 0; }
+.cqa a.cqa-nav-item { text-decoration: none; font-size: 12px; }
+.cqa .cqa-msg-t, .cqa .cqa-ev-t { overflow-wrap: anywhere; white-space: normal; }
+.cqa button:disabled { cursor: wait; opacity: .55; }
+.cqa .cqa-toast { max-width: min(90vw, 650px); }
+.cqa .cqa-list { max-height: 320px; overflow: auto; padding: 2px; }
+.cqa .cqa-item { min-width: 0; }
+.cqa .cqa-item-id { overflow-wrap: anywhere; }
+.cqa .cqa-group input, .cqa .cqa-group button { color: var(--cqa-fg); }
+.cqa .cqa-group { margin-top: auto; padding: 12px 4px 0; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid rgba(255, 255, 255, 0.14); }
+.cqa .cqa-group .cqa-role-l { padding-left: 2px; }
+.cqa .cqa-group + .cqa-role { margin-top: 12px; }
+.cqa .cqa-fld--full { flex: 1 1 100%; }
+.cqa .cqa-fld--full textarea { resize: vertical; }
+.cqa .cqa-warnbar.cqa-row { justify-content: space-between; }
+@media (max-width: 760px) {
+  .cqa .cqa-group { margin: 0; padding: 0; border: 0; flex-direction: row; align-items: center; }
+  .cqa .cqa-group .cqa-role-l { display: none; }
+  .cqa .cqa-group .cqa-in { width: 110px; }
+}

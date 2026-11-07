@@ -20,3 +20,9 @@ Implementation session: 2026-11-07.
 - Ground Truth accuracy: official reference answers were not provided; no accuracy percentage is asserted.
 
 This record distinguishes engineering tests from actual model validation. Update it after completing the outstanding checks.
+
+## Supplied frontend integration: 2026-11-08
+- The `hacaton.zip` UI is the default page. Its mock server/results were excluded; an adapter uses the existing validated local API. `/classic` preserves model settings, manual JSON import and history inspection.
+- All 26 tests pass, including adapter regressions for reviewed answers during a second appeal, exact rubric polling, stale transcript rejection, source evidence, ISO timestamp alignment and one durable batch for all dialogs.
+- Chrome checks confirmed 65 real records, a Kazakh conversation, eight editable criteria, and a 390px mobile viewport without overflow or runtime errors.
+- An isolated browser fixture exercised 85.38 -> appeal -> reviewed 70 -> reload -> changed weight -> fresh full evaluation. These fixture outputs are isolated from production state and are not model quality measurements.

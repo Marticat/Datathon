@@ -86,7 +86,7 @@ export function createApp({dataFile=resolve('.local/state.json'),evaluator=evalu
       }
       if(path.startsWith('/api/'))throw error('Метод API не найден.',404);
       if(req.method!=='GET')throw error('Метод не разрешён.',405);
-      const files={'/':'index.html','/index.html':'index.html','/app.js':'app.js','/styles.css':'styles.css'};
+      const files={'/':'index.html','/index.html':'index.html','/classic':'classic.html','/app.js':'app.js','/styles.css':'styles.css','/cqa.js':'cqa.js','/cqa-api.js':'cqa-api.js','/cqa-init.js':'cqa-init.js','/cqa.css':'cqa.css','/cqa-extra.css':'cqa-extra.css'};
       if(!files[path])throw error('Файл не найден.',404);
       const content=await readFile(resolve(publicDir,files[path]));const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css'}[extname(files[path])];
       res.writeHead(200,{'content-type':mime+'; charset=utf-8','cache-control':'no-cache','x-content-type-options':'nosniff','referrer-policy':'no-referrer','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src https: http:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"});res.end(content);
