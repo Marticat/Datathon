@@ -59,7 +59,7 @@
     opts = opts || {};
     var base = opts.api || '';
     var state = {
-      role: 'analyst', view: 'dialogs', group: opts.group || '', did: null,
+      role: 'analyst', view: 'dialogs', group: opts.group || '', did: null, filter: {query:'',language:'',gross:false},
       checklist: null, draft: null, dialogs: [], results: {}, appeals: {},
       drafts: {}, errs: {}, form: null, hl: null, focus: null,
       t: 0, playing: false, toast: '', loading: true, loadErr: '', busy: false
@@ -201,7 +201,10 @@
     }
 
     function listHTML() {
-      return '<ul class="cqa-list">' + state.dialogs.map(function (d) {
+      var shown = opts.filterDialogs ? opts.filterDialogs(state.dialogs,state.filter) : state.dialogs;
+      return '<div class="cqa-filters"><input id="cqa-search" class="cqa-in" data-filter="query" type="search" placeholder="Найти диалог или реплику" aria-label="Поиск диалогов" value="' + esc(state.filter.query) + '"><select class="cqa-in" data-filter="language" aria-label="Язык">' + [['','Все языки'],['RU','Русский'],['KZ','Қазақша'],['EN','English']].map(function (p) {return '<option value="' + p[0] + '"' + (state.filter.language===p[0]?' selected':'') + '>' + p[1] + '</option>';}).join('') + '</select><label><input type="checkbox" data-filter="gross"' + (state.filter.gross?' checked':'') + '> Грубые ошибки AI</label><span>Показано ' + shown.length + ' из ' + state.dialogs.length + '</span></div>' +
+        (!shown.length ? '<p class="cqa-empty">По выбранным фильтрам диалоги не найдены. Неоценённые диалоги не считаются проверенными.</p>' : '') +
+        '<ul class="cqa-list">' + shown.map(function (d) {
         var rows = rowsFor(d), sc = score(rows, true);
         var nA = openFor(d.id);
         var gross = rows.some(function (x) { return !x.pending && x.c.gross && x.fin === 1; });
@@ -211,6 +214,7 @@
           '<span class="cqa-item-meta">' + (d.voice ? 'Звонок' : 'Чат') + ' · ' + esc(d.lang) + (d.operator ? ' · ' + esc(d.operator) : '') + '</span>' +
           '<span class="cqa-tags">' +
           (gross ? '<span class="cqa-tag cqa-tag--bad">Грубая ошибка</span>' : '') +
+          (d.grossAI && !gross ? '<span class="cqa-tag cqa-tag--warn">AI выявил · пересмотрено</span>' : '') +
           (nA ? '<span class="cqa-tag cqa-tag--warn">Апелляция</span>' : '') +
           (pend ? '<span class="cqa-tag">Не оценено: ' + pend + '</span>' : '') +
           '</span></button></li>';
@@ -381,7 +385,11 @@
       var head = '<div class="cqa-head"><h2>Диалоги</h2><p>Выберите диалог. Реплика-доказательство в оценке ведёт к нужному месту в расшифровке' +
         (state.role === 'reviewer' ? '. Вы смотрите как проверяющий: у спорных критериев есть форма решения.' : '. Любой критерий можно оспорить.') + '</p></div>';
       if (!state.dialogs.length) return head + '<div class="cqa-empty">В наборе нет диалогов.</div>';
-      return head + listHTML() + detailHTML(dlg(state.did));
+      var shown = opts.filterDialogs ? opts.filterDialogs(state.dialogs,state.filter) : state.dialogs;
+      if (!shown.some(function (d) { return d.id===state.did; })) {
+        state.did=shown.length?shown[0].id:null; state.t=0; state.playing=false; state.hl=null; setAudio(dlg(state.did));
+      }
+      return head + listHTML() + (dlg(state.did) ? detailHTML(dlg(state.did)) : '');
     }
 
     function appealsView() {
@@ -686,6 +694,7 @@
 
     root.addEventListener('input', function (e) {
       var t = e.target;
+      if (t.getAttribute('data-filter')==='query') {var caret=t.selectionStart;state.filter.query=t.value;render();var search=root.querySelector('#cqa-search');search.focus();search.setSelectionRange(caret,caret);return;}
       if (t.getAttribute('data-draft')) { state.drafts[t.getAttribute('data-draft')] = t.value; return; }
       if (t.getAttribute('data-seek')) { seekTo(Number(t.value)); updatePlayer(); return; }
       var f = t.getAttribute('data-ck');
@@ -703,6 +712,7 @@
     });
     root.addEventListener('change', function (e) {
       var t = e.target;
+      if (t.getAttribute('data-filter')==='gross' || t.getAttribute('data-filter')==='language') {state.filter[t.getAttribute('data-filter')]=t.type==='checkbox'?t.checked:t.value;state.playing=false;setAudio(null);render();setAudio(dlg(state.did));return;}
       if (t.getAttribute('data-draft')) { state.drafts[t.getAttribute('data-draft')] = t.value; return; }
       var f = t.getAttribute('data-ck');
       if (!f) return;

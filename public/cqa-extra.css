@@ -8,6 +8,11 @@ body { margin: 0; }
 .cqa .cqa-item { min-width: 0; }
 .cqa .cqa-item-id { overflow-wrap: anywhere; }
 .cqa .cqa-group input, .cqa .cqa-group button { color: var(--cqa-fg); }
+.cqa .cqa-filters { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.cqa .cqa-filters input[type="search"] { flex:1 1 200px; min-width:0; }
+.cqa .cqa-filters select { width:auto; }
+.cqa .cqa-filters label { display:flex; gap:6px; align-items:center; }
+.cqa .cqa-filters span { color:var(--cqa-muted); font-size:12px; }
 .cqa .cqa-group { margin-top: auto; padding: 12px 4px 0; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid rgba(255, 255, 255, 0.14); }
 .cqa .cqa-group .cqa-role-l { padding-left: 2px; }
 .cqa .cqa-group + .cqa-role { margin-top: 12px; }

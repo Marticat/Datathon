@@ -7,6 +7,10 @@ export function toRubric(checklist) {
  return {name:checklist.name||'Freedom · чек-лист',criteria:checklist.criteria.map(c=>({id:c.id,title:c.title,section:checklist.sections.find(s=>s.id===c.section)?.title||'Общее',description:c.desc,type:c.gross?'flag':c.type,weight:c.gross?0:Number(c.weight),scale:c.type==='scale'?[...c.steps].sort((a,b)=>a-b):[],allowNA:!!c.naAllowed,naRule:c.naAllowed?c.naRule:''}))};
 }
 const value=v=>v==='yes'?1:v==='no'?0:v;
+export function filterDialogs(dialogs,filter={}) {
+ const query=(filter.query||'').trim().toLocaleLowerCase();
+ return dialogs.filter(d=>(!filter.gross||d.grossAI===true)&&(!filter.language||d.lang===filter.language)&&(!query||[d.id,...d.raw.map(m=>m[2])].join(' ').toLocaleLowerCase().includes(query)));
+}
 const signature=c=>JSON.stringify([c.title,c.desc||'',c.type,(c.steps||[]).join(','),!!c.naAllowed,!!c.gross]);
 function relativeTime(timestamp,first){if(/^\d{4}-/.test(timestamp))return Math.max(0,(Date.parse(timestamp)-Date.parse(first))/1000)||0;return timestamp.split(':').reduce((n,p)=>n*60+Number(p),0);}
 export function toBootstrap(state,group,rubricId) {
@@ -15,6 +19,9 @@ export function toBootstrap(state,group,rubricId) {
  const dialogs=conversations.map(c=>{const raw=c.transcript.map(m=>[relativeTime(m.timestamp,c.transcript[0].timestamp),m.speaker,m.text,m.timestamp]);return {id:c.conversation_id,hash:c.hash,seekable:c.transcript.every(m=>/^\d+:\d{2}(?::\d{2})?$/.test(m.timestamp)),lang:c.language,channel:c.channel,audio:c.audio_url,raw,duration:Math.max(...raw.map(m=>m[0]),1),operator:''};});
  for(const c of conversations){
   const e=state.evaluations.filter(e=>e.conversationId===c.conversation_id&&e.conversationHash===c.hash&&e.rubricId===rubric.id).at(-1);if(!e)continue;
+  const dialog=dialogs.find(d=>d.id===c.conversation_id);
+  dialog.grossAI=rubric.criteria.some(criterion=>criterion.type==='flag'&&e.answers.find(a=>a.criterionId===criterion.id)?.answer==='yes');
+  dialog.grossFinal=rubric.criteria.some(criterion=>criterion.type==='flag'&&(e.reviewedAnswers||e.answers).find(a=>a.criterionId===criterion.id)?.answer==='yes');
   evaluations[c.conversation_id]=e.id;results[c.conversation_id]={};
   for(const a of e.answers){const criterion=checklist.criteria.find(x=>x.id===a.criterionId);if(!criterion)continue;
    const evidence=(a.evidenceIds||[]).map(id=>c.transcript.findIndex(m=>m.id===id)).filter(i=>i>=0);

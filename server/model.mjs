@@ -1,10 +1,11 @@
 import { validateAnswers } from './domain.mjs';
-export const PROMPT_VERSION='cqa-2026-11-07-v1';
+export const PROMPT_VERSION='cqa-2026-11-08-v2';
 export function buildRequest(conversation,rubric,model) {
   const properties={};
   for(const c of rubric.criteria){
     const allowed=c.type==='scale'?[...c.scale]:['yes','no'];if(c.allowNA)allowed.push('na');
-    properties[c.id]={type:'object',properties:{answer:{enum:allowed},explanation:{type:'string'},evidenceIds:{type:'array',items:{type:'string',enum:conversation.transcript.map(m=>m.id)}},checkedRange:{anyOf:[{type:'null'},{type:'object',properties:{from:{type:'string'},to:{type:'string'}},required:['from','to'],additionalProperties:false}]}},required:['answer','explanation','evidenceIds','checkedRange'],additionalProperties:false};
+    const ids=conversation.transcript.map(m=>m.id);
+    properties[c.id]={type:'object',properties:{answer:{enum:allowed},explanation:{type:'string',minLength:10,maxLength:300},evidenceIds:{type:'array',minItems:1,maxItems:3,items:{type:'string',enum:ids}},checkedRange:{anyOf:[{type:'null'},{type:'object',properties:{from:{type:'string',enum:ids},to:{type:'string',enum:ids}},required:['from','to'],additionalProperties:false}]}},required:['answer','explanation','evidenceIds','checkedRange'],additionalProperties:false};
   }
   const schema={type:'object',properties:{criteria:{type:'object',properties,required:rubric.criteria.map(c=>c.id),additionalProperties:false}},required:['criteria'],additionalProperties:false};
   const instructions=`Ты независимый проверяющий качества работы оператора Freedom. Оцени весь диалог по ТЕКУЩЕМУ чек-листу ниже. Это единственный источник критериев. Не добавляй требований из памяти.
@@ -12,7 +13,8 @@ export function buildRequest(conversation,rubric,model) {
 Вначале установи существенные вопросы клиента, известные сведения, необходимость защищённого действия, момент подтверждения личности и возможность завершения. Применяй это последовательно между критериями.
 N/A разрешён только если allowNA=true И точно выполнено naRule. N/A не означает неуверенность, плохой ответ или отсутствие действия. Если действие требовалось и не выполнено — Нет/низкая ступень.
 Вежливость и ясность не доказывают полноту консультации. Не штрафуй за короткость ответа, если запрос закрыт. Не выдумывай тарифы, сроки и правила компании: используй только сведения диалога и формулировку критерия; в обосновании явно укажи ограничения проверки фактической правильности при отсутствии источника.
-Для каждого критерия выбери ровно допустимый ответ. Обоснование короткое, конкретное, на русском (1–2 предложения). evidenceIds — существующие ID реплик, которые действительно подтверждают решение. Не приписывай оператору действия клиента/бота. Для отсутствующего действия покажи место, где оно ожидалось, через checkedRange {from,to}; если проверял отсутствие по всему диалогу, диапазон должен охватывать весь диалог. Для N/A объясни выполненное условие и дай реплику/диапазон.
+Для каждого критерия выбери ровно допустимый ответ. Обоснование короткое, конкретное, на русском: максимум 300 символов. Не пересказывай диалог и не повторяй правило. evidenceIds — от 1 до 3 существующих ID реплик: конкретное действие, вопрос, создающий условие N/A, либо границы контекста при отсутствии события. Не приписывай оператору действия клиента/бота. Для отсутствующего действия дополнительно укажи checkedRange {from,to}; если проверял отсутствие по всему диалогу, диапазон должен охватывать весь диалог. Для N/A объясни выполненное условие; N/A тоже требует evidenceIds.
+В звонках учитывай устную речь: не снижать балл только за разговорные конструкции, повторы, слова-паразиты, паузы или возможные ошибки транскрипции. Не делать выводов об интонации и дикции по одному тексту. Неоднозначную или повреждённую реплику прямо обозначь в обосновании; не достраивай её содержание.
 Не вычисляй итог и не возвращай цитаты: их получит программа из источника. Не возвращай мысли или рассуждения, только краткое обоснование и JSON.
 ТЕКУЩИЙ ЧЕК-ЛИСТ: ${JSON.stringify(rubric.criteria)}
 ФОРМАТ ОТВЕТА: ${JSON.stringify(schema)}`;

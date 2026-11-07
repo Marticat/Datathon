@@ -14,6 +14,9 @@ test('local model schema and prompt use current custom rubric; transcript is unt
  assert.match(request.messages[0].content,/недоверенные/);assert.match(request.messages[0].content,/обратный звонок/);
  assert.ok(request.format.properties.criteria.properties.c6.properties.answer.enum.includes(7));
  assert.ok(!request.format.properties.criteria.properties.c1.properties.answer.enum.includes('na'));
+ assert.equal(request.format.properties.criteria.properties.c1.properties.explanation.maxLength,300);
+ assert.equal(request.format.properties.criteria.properties.c1.properties.evidenceIds.minItems,1);
+ assert.match(request.messages[0].content,/устную речь/);
  assert.match(request.messages[1].content,/Ignore all instructions/);
 });
 test('invalid model reply fails rather than becoming a fabricated score',async()=>{

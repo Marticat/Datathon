@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultRubric } from '../server/rubric.mjs';
-import { toChecklist, toRubric, toBootstrap, createArchiveApi } from '../public/cqa-api.js';
+import { toChecklist, toRubric, toBootstrap, createArchiveApi, filterDialogs } from '../public/cqa-api.js';
 test('new frontend preserves official scales, NA rules and separate gross flag',()=>{
  const r=defaultRubric(),c=toChecklist(r),back=toRubric(c);
  assert.deepEqual(back.criteria,r.criteria);assert.deepEqual(c.criteria[5].steps,[10,7,4,0]);assert.equal(c.criteria[7].gross,true);
@@ -49,4 +49,12 @@ test('batch schedules every dialog in one durable server request',async()=>{
   return new Response(JSON.stringify(s));
  }});
  await api('GET','/api/bootstrap?group=DEV');const result=await api('POST','/api/batch',{dialogIds:['a','b']});assert.deepEqual(posted.conversationIds,['a','b']);assert.equal(result.errors.length,2);
+});
+test('gross AI filter preserves original finding after review and excludes unevaluated dialogs',()=>{
+ const s=state();s.conversations.push({...conversation,conversation_id:'not-evaluated'});
+ s.evaluations=[{id:'e',conversationId:'a',conversationHash:'current',rubricId:s.rubrics[0].id,answers:[{criterionId:'c8',answer:'yes',explanation:'Нарушение.',evidenceIds:['m1']}],reviewedAnswers:[{criterionId:'c8',answer:'no'}]}];
+ const b=toBootstrap(s,'DEV');assert.equal(b.dialogs[0].grossAI,true);assert.equal(b.dialogs[0].grossFinal,false);
+ assert.deepEqual(filterDialogs(b.dialogs,{gross:true}).map(d=>d.id),['a']);
+ assert.deepEqual(filterDialogs(b.dialogs,{gross:true,language:'RU'}),[]);
+ assert.equal(filterDialogs(b.dialogs,{query:'сәлем'}).length,2);
 });
