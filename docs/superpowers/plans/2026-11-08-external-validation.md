@@ -10,6 +10,8 @@
 - [x] Run actual audio transcription and review speaker/text/time alignment; confirm roles from source evidence. Run all examples through official quality evaluation and record limitations without claiming official Ground Truth.
 - [x] Audit clean startup and dependencies; add actionable preflight/launch guidance and verify on isolated fresh state.
 - [x] Exercise jury-facing UI: fresh import, score/evidence, gross filter, appeal/review, checklist version/change, audio review and missing-record recovery. Fix reproducible blockers.
-- [ ] Run regression and fresh-checkout checks, independent review, commit/push tested changes to main. Monitor DEV and preserve its export workflow.
+- [x] Run regression and fresh-checkout checks and independent review. Preserve the running DEV export workflow.
+
+**Verification:** 60 Node tests passed; the optional browser scenario passed separately; 11 Python tests passed. A clean local Git clone with autocrlf enabled verified all bundled sample hashes and passed both example-import tests without .env, saved state or node_modules. The real DEV export remains in progress with its existing waiter; no partial submission was manufactured. Deliver these tested changes to main.
 
 **Review focus:** missing models, wrong Python, absent .env or API URL, no demo data on fresh checkout, media paths/role mapping, stale scores after changes, private data accidentally committed, sample data mixed into submission.
