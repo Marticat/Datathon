@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { resolve, join } from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { createApp } from '../server/app.mjs';
+
+test('submission command evaluates, writes UTF8, resumes without new inference, checks and preserves file on invalid input',async t=>{
+ await mkdir(resolve('.local/tests'),{recursive:true});const dir=await mkdtemp(resolve('.local/tests/submission-'));
+ let calls=0;
+ const app=createApp({dataFile:join(dir,'state.json'),evaluator:async(c,r)=>{calls++;return {answers:r.criteria.map(x=>({criterionId:x.id,answer:x.type==='scale'?x.scale.at(-1):x.type==='flag'?'no':'yes',explanation:'Проверка по исходной реплике.',evidenceIds:['m1']}))};}});
+ await new Promise(done=>app.server.listen(0,'127.0.0.1',done));
+ t.after(async()=>{await new Promise(done=>app.server.close(done));await rm(dir,{recursive:true,force:true});});
+ const base=`http://127.0.0.1:${app.server.address().port}`;
+ await writeFile(join(dir,'submission.config.json'),JSON.stringify({team_name:'orleugpt'}));
+ const records=Array.from({length:10},(_,i)=>({conversation_id:`unseen-${i}`,language:'KZ',channel:'agent chat',transcript:[{speaker:'operator',timestamp:'00:00',text:'Сәлеметсіз бе! Мен Әлия.'}]}));
+ await writeFile(join(dir,'input.json'),JSON.stringify(records));
+ const run=(...args)=>promisify(execFile)(process.execPath,[resolve('scripts/submit.mjs'),'prod',...args],{cwd:dir,env:{...process.env,CQA_URL:base},timeout:20000});
+ await run('--input','input.json','--evaluate');assert.equal(calls,10);
+ const file=join(dir,'results/prod/results.json');const saved=await readFile(file,'utf8');const result=JSON.parse(saved);
+ assert.equal(result.results.length,10);assert.equal(result.team_name,'orleugpt');assert.match(saved,/исходной/);assert.ok(result.results.every(r=>r.status==='ok'));
+ await run('--evaluate');assert.equal(calls,10);await run('--check');
+ await writeFile(join(dir,'short.json'),JSON.stringify(records.slice(0,9)));
+ await assert.rejects(run('--input','short.json'),/ровно 10/);assert.equal(await readFile(file,'utf8'),saved);
+ app.store.update(s=>{s.conversations[0].hash='changed-source';});
+ await assert.rejects(run('--check'),/измен/);
+ app.store.update(s=>s.conversations.pop());
+ await assert.rejects(run(),/ровно 10/);assert.equal(await readFile(file,'utf8'),saved);
+});

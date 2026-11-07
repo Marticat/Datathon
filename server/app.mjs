@@ -6,6 +6,7 @@ import { Store } from './store.mjs';
 import { validateRubric, normalizeConversations, validateAnswers, validateAnswer, calculateScore, hash, text } from './domain.mjs';
 import { evaluateLocal, modelStatus, PROMPT_VERSION } from './model.mjs';
 import { createAudioService } from './audio.mjs';
+import { submissionConversations } from './submission.mjs';
 
 const error=(message,status=400)=>Object.assign(new Error(message),{status});
 const get=(array,id,label)=>{const value=array.find(x=>x.id===id||x.conversation_id===id);if(!value)throw error(`${label} не найден.`,404);return value;};
@@ -35,7 +36,7 @@ export function createApp({dataFile=resolve('.local/state.json'),evaluator=evalu
       store.update(s=>{const j=get(s.jobs,job.id,'Задача');j.status='completed';j.currentConversationId=null;delete j.snapshots;});
     }}finally{queueRunning=false;}
   }
-  function publicState(){const {audioJobs,...state}=store.read();state.jobs=state.jobs.map(({snapshots,settings,...job})=>job);return state;}
+  function publicState(){const {audioJobs,...state}=store.read();state.jobs=state.jobs.map(({snapshots,settings,...job})=>({...job,model:settings?.model??null}));return state;}
   const server=createServer(async(req,res)=>{
     const send=(data,status=200)=>{res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(JSON.stringify(data));};
     try {
@@ -53,6 +54,7 @@ export function createApp({dataFile=resolve('.local/state.json'),evaluator=evalu
           let response;try{response=await fetch(remote,{signal:AbortSignal.timeout(60000)});}catch{throw error('API организаторов недоступен. Можно загрузить сохранённый JSON.',502);}
           if(!response.ok)throw error(`Ошибка API организаторов: ${response.status}`,502);payload=await response.json();}
         const normalized=normalizeConversations(payload,groupId);
+        if(input.submissionSplit)submissionConversations({conversations:normalized},input.submissionSplit,groupId);
         store.update(s=>{for(const c of normalized){const at=s.conversations.findIndex(x=>x.conversation_id===c.conversation_id);if(at>=0)s.conversations[at]=c;else s.conversations.push(c);}});return send({imported:normalized.length});
       }
       if(req.method==='POST'&&path==='/api/rubrics'){

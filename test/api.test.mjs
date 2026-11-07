@@ -52,6 +52,13 @@ test('batch preserves success and records per-dialog failure',async t=>{
  const job=(await request('/api/jobs',{conversationIds:['test-a','bad'],rubricId:r.id})).data;
  let state;for(let i=0;i<50;i++){state=(await request('/api/state')).data;if(state.jobs[0].status==='completed')break;await new Promise(resolve=>setTimeout(resolve,20));}
  assert.equal(state.jobs[0].id,job.id);assert.equal(state.jobs[0].results.length,2);assert.ok(state.jobs[0].results[0].evaluationId);assert.match(state.jobs[0].results[1].error,/timeout/);assert.equal(state.evaluations.length,1);
+ assert.equal(state.jobs[0].model,state.settings.model);assert.equal(state.jobs[0].settings,undefined);
+});
+test('submission import validates incoming count before merging with old records',async t=>{
+ const {request}=await fixture(t);const payload=Array.from({length:10},(_,i)=>({...sample,conversation_id:`prod-${i}`}));
+ assert.equal((await request('/api/import',{groupId:'PROD',payload,submissionSplit:'prod'})).status,200);
+ const response=await request('/api/import',{groupId:'PROD',payload:payload.slice(0,9).map(c=>({...c,transcript:[{...c.transcript[0],text:'Изменённый текст.'}]})),submissionSplit:'prod'});
+ assert.equal(response.status,400);assert.equal((await request('/api/state')).data.conversations[0].transcript[0].text,sample.transcript[0].text);
 });
 test('reimport never changes historical transcript evidence',async t=>{
  const {request}=await fixture(t);await request('/api/import',{payload:[sample]});const rubric=(await request('/api/state')).data.rubrics[0];
