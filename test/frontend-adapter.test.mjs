@@ -8,6 +8,20 @@ test('new frontend preserves official scales, NA rules and separate gross flag',
 });
 const conversation={conversation_id:'a',hash:'current',groupId:'DEV',language:'KZ',channel:'voice call',audio_url:null,transcript:[{id:'m1',speaker:'operator',timestamp:'2026-01-01T10:00:00Z',text:'Сәлем!'},{id:'m2',speaker:'client',timestamp:'2026-01-01T10:00:10Z',text:'Рақмет!'}]};
 function state(){return {conversations:[conversation],rubrics:[defaultRubric()],evaluations:[],appeals:[],jobs:[]};}
+
+test('fresh empty archive opens without implicitly importing an unconfigured dataset',async()=>{
+ const s=state();s.conversations=[];const paths=[];
+ const api=createArchiveApi({fetcher:async path=>{paths.push(path);return new Response(JSON.stringify(path==='/api/state'?s:{error:'Dataset source is not configured'}),{status:path==='/api/state'?200:400});}});
+ const result=await api('GET','/api/bootstrap');
+ assert.deepEqual(result.dialogs,[]);assert.equal(result.checklist.version,1);assert.deepEqual(paths,['/api/state']);
+});
+
+test('bootstrap exposes imported groups and opens an external group without fetching organizer data',async()=>{
+ const s=state();s.conversations.push({...conversation,conversation_id:'external',groupId:'EXTERNAL-ABCD'});const paths=[];
+ const api=createArchiveApi({fetcher:async path=>{paths.push(path);return new Response(JSON.stringify(s));}});
+ const result=await api('GET','/api/bootstrap?group=EXTERNAL-ABCD');
+ assert.deepEqual(result.groups,['DEV','EXTERNAL-ABCD']);assert.deepEqual(result.dialogs.map(d=>d.id),['external']);assert.deepEqual(paths,['/api/state']);
+});
 test('bootstrap never reuses another rubric version or historical transcript',()=>{
  const s=state();s.evaluations=[{id:'old',conversationId:'a',rubricId:s.rubrics[0].id,conversationHash:'old',answers:[]}];
  const b=toBootstrap(s,'DEV');assert.deepEqual(b.results,{});assert.equal(b.dialogs[0].raw[1][0],10);assert.equal(b.dialogs[0].raw[1][3],conversation.transcript[1].timestamp);
@@ -35,6 +49,14 @@ test('another open appeal preserves the previously reviewed answer',()=>{
 });
 test('calendar timestamps have no invented audio alignment',()=>{
  const b=toBootstrap(state(),'DEV');assert.equal(b.dialogs[0].seekable,false);assert.equal(b.dialogs[0].raw[0][3],conversation.transcript[0].timestamp);
+});
+
+test('ordinal transcript labels preserve source text without invented timing or NaN duration',()=>{
+ const s=state();s.conversations[0]={...conversation,channel:'agent chat',transcript:conversation.transcript.map((m,i)=>({...m,timestamp:`Turn ${i+1} (source has no timestamps)`}))};
+ const d=toBootstrap(s,'DEV').dialogs[0];
+ assert.equal(d.duration,null);assert.equal(d.seekable,false);
+ assert.deepEqual(d.raw.map(m=>m[0]),[null,null]);
+ assert.equal(d.raw[1][3],'Turn 2 (source has no timestamps)');
 });
 test('polling keeps an explicit rubric and stale transcript cannot enqueue',async()=>{
  const s=state(),old=s.rubrics[0];s.rubrics.push({...old,id:'new',version:2});let writes=0;

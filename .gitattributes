@@ -1,0 +1,3 @@
+# Sample SHA-256 values refer to exact source/adaptation bytes on every OS.
+/samples/** -text whitespace=cr-at-eol
+*.flac binary

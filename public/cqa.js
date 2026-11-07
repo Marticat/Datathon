@@ -91,7 +91,7 @@
     function load(group) {
       state.loading = true; state.loadErr = ''; state.playing = false; setAudio(null); render();
       return api('GET', '/api/bootstrap?group=' + encodeURIComponent(group || '')).then(function (data) {
-        state.group = data.group; state.checklist = data.checklist; state.draft = null; state.jobs = data.jobs || [];
+        state.group = data.group; state.groups = data.groups || []; state.checklist = data.checklist; state.draft = null; state.jobs = data.jobs || [];
         state.dialogs = data.dialogs.map(prep); state.results = data.results || {}; state.appeals = data.appeals || {};
         state.did = state.dialogs.some(function (d) {return d.id===opts.dialog;}) ? opts.dialog : state.dialogs.length ? state.dialogs[0].id : null;
         state.t = 0; state.hl = null; state.form = null; state.loading = false;
@@ -195,7 +195,7 @@
         '<a class="cqa-nav-item" href="/audio">Загрузить аудио ↗</a>' +
         '<a class="cqa-nav-item" href="/classic">Модель, импорт и история ↗</a><a class="cqa-nav-item" href="/api/export" download>Экспорт JSON ↓</a>' +
         '<div class="cqa-group"><label class="cqa-role-l" for="cqa-group">Набор данных</label>' +
-        '<input id="cqa-group" class="cqa-in" type="text" value="' + esc(state.group) + '" placeholder="group_id">' +
+        '<input id="cqa-group" class="cqa-in" type="text" list="cqa-groups" value="' + esc(state.group) + '" placeholder="group_id"><datalist id="cqa-groups">' + (state.groups || []).map(function (group) { return '<option value="' + esc(group) + '"></option>'; }).join('') + '</datalist>' +
         '<button class="cqa-btn" data-act="load-group">Загрузить</button></div>' +
         '<div class="cqa-role"><span class="cqa-role-l">Роль</span><div class="cqa-seg" role="group" aria-label="Роль в демонстрации">' +
         rb('analyst', 'Аналитик') + rb('reviewer', 'Проверяющий') + '</div></div></nav>';
@@ -376,7 +376,7 @@
     function detailHTML(d) {
       var rows = rowsFor(d), pend = rows.filter(function (x) { return x.pending; }).length;
       return '<div class="cqa-detail-head"><h3>' + (d.voice ? 'Анализ разговора' : 'Анализ чата') + '</h3><span>' + esc(d.id) + ' · ' +
-        (d.voice ? 'звонок' : 'чат') + ' · ' + esc(d.lang) + ' · ' + mmss(d.duration) + '</span></div>' +
+        (d.voice ? 'звонок' : 'чат') + ' · ' + esc(d.lang) + ' · ' + (Number.isFinite(d.duration) ? mmss(d.duration) : 'Время не указано') + '</span></div>' +
         (pend ? '<div class="cqa-warnbar cqa-row">Не оценено критериев: ' + pend + '. <button class="cqa-btn" data-act="eval-dialog" data-d="' + esc(d.id) + '">Оценить диалог</button></div>' : '') +
         (d.voice ? playerHTML(d) : '') +
         '<div class="cqa-split">' + transcriptHTML(d) + resultHTML(d) + '</div>';
@@ -385,7 +385,7 @@
     function dialogsView() {
       var head = '<div class="cqa-head"><h2>Диалоги</h2><p>Выберите диалог. Реплика-доказательство в оценке ведёт к нужному месту в расшифровке' +
         (state.role === 'reviewer' ? '. Вы смотрите как проверяющий: у спорных критериев есть форма решения.' : '. Любой критерий можно оспорить.') + '</p></div>';
-      if (!state.dialogs.length) return head + '<div class="cqa-empty">В наборе нет диалогов.</div>';
+      if (!state.dialogs.length) return head + '<div class="cqa-empty"><p>В наборе нет диалогов.</p><p>Для первой проверки загрузите JSON с диалогами или аудиозапись. В разделе «Модель, импорт и история» проверьте подключение к Ollama и выберите установленную локальную модель.</p><p><a class="cqa-btn" href="/classic">Импортировать JSON и настроить модель</a> <a class="cqa-btn" href="/audio">Загрузить аудио</a></p></div>';
       var shown = opts.filterDialogs ? opts.filterDialogs(state.dialogs,state.filter) : state.dialogs;
       if (!shown.some(function (d) { return d.id===state.did; })) {
         state.did=shown.length?shown[0].id:null; state.t=0; state.playing=false; state.hl=null; setAudio(dlg(state.did));
@@ -462,7 +462,7 @@
     function bodyHTML() {
       if (state.loading) return '<div class="cqa-empty">Загрузка данных…</div>';
       if (state.loadErr || !state.checklist) {
-        return '<div class="cqa-empty">Не удалось загрузить данные: ' + esc(state.loadErr || 'нет ответа сервера') + '</div>';
+        return '<div class="cqa-empty"><p>Не удалось загрузить данные: ' + esc(state.loadErr || 'нет ответа сервера') + '</p><p><a class="cqa-btn" href="/classic">Импортировать JSON и проверить настройки</a></p></div>';
       }
       return state.view === 'dialogs' ? dialogsView() : state.view === 'appeals' ? appealsView() : checklistView();
     }
@@ -668,6 +668,7 @@
         if (err) { toast(err); return; }
         api('PUT', '/api/checklist', state.draft).then(function (cl) {
           state.checklist = cl; state.draft = clone(cl); state.results = {}; state.appeals = {};
+          state.dialogs.forEach(function (dialog) { delete dialog.grossAI; delete dialog.grossFinal; });
           var pend = 0;
           state.dialogs.forEach(function (x) { pend += rowsFor(x).filter(function (r) { return r.pending; }).length; });
           toast('Конфигурация сохранена, версия ' + cl.version + (pend ? '. Критериев без оценки: ' + pend : '.')); render();

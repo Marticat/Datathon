@@ -12,6 +12,10 @@ function speakerIds(job) {
   return [...new Set([...(job.result?.speakers || []).map(s => typeof s === 'string' ? s : s.id), ...(job.result?.segments || []).map(s => s.speaker || 'unknown'), ...(job.draft?.segments || []).map(s => s.speaker || 'unknown')].filter(Boolean))];
 }
 
+export function speakerLabel(id, index) {
+  return id === 'speaker_channel_0' ? 'Левый канал' : id === 'speaker_channel_1' ? 'Правый канал' : /unknown|unassigned/i.test(id) ? 'Неопределённый голос' : `Голос ${index + 1}`;
+}
+
 export function makeDraft(job) {
   const saved = job.draft || {};
   const language = String(saved.language ?? job.result?.language ?? '').toUpperCase();
@@ -192,7 +196,7 @@ function startAudioPage() {
       state.savedRevision = 0;
     }
     state.segmentElements = [];
-    state.voiceNames = new Map(speakerIds(job).map((id, index) => [id, /unknown|unassigned/i.test(id) ? 'Неопределённый голос' : `Голос ${index + 1}`]));
+    state.voiceNames = new Map(speakerIds(job).map((id, index) => [id, speakerLabel(id, index)]));
     const draft = state.draft;
     $('review-panel').hidden = false;
     $('review-confirm').checked = false;
@@ -422,6 +426,13 @@ function startAudioPage() {
       renderJobs();
       if (initial && !state.selected) {
         const requested = new URLSearchParams(location.search).get('job');
+        if (requested && !state.jobs.some(job => job.id === requested)) {
+          const url = new URL(location.href);
+          url.searchParams.delete('job');
+          history.replaceState(null, '', url.pathname + url.search);
+          status('jobs-status', 'Запись не найдена или была удалена. Выберите другую запись слева или загрузите новую.', true);
+          return;
+        }
         if (requested || state.jobs.length) await selectJob(requested || state.jobs[0].id);
       } else if (state.selected && !state.selecting && !state.busy) {
         const selected = state.selected;
@@ -454,7 +465,7 @@ function startAudioPage() {
     $('upload-button').disabled = true;
     status('upload-status', 'Загружаем запись… Длительность будет проверена при обработке.');
     try {
-      const params = new URLSearchParams({ filename: file.name, language: $('upload-language').value, speakers: $('upload-speakers').value });
+      const params = new URLSearchParams({ filename: file.name, language: $('upload-language').value, speakers: $('upload-speakers').value, channelMode: $('upload-channel-mode').value });
       const data = await request(`/api/audio/upload?${params}`, { method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file });
       const job = data.job || data;
       if (!job.id) throw new Error('Сервер не вернул идентификатор записи. Обновите список записей.');

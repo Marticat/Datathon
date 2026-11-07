@@ -18,7 +18,7 @@ export function mediaRange(header,size) {
 }
 function validateResult(result) {
   if(!Number.isFinite(result?.duration)||result.duration<=0||result.duration>1200||!Array.isArray(result.segments)||!result.segments.length||result.segments.length>3000||!Array.isArray(result.speakers)||result.speakers.length>30)fail('Распознавание вернуло некорректный результат.');
-  if(!result.speakers.length||new Set(result.speakers).size!==result.speakers.length||result.speakers.some(id=>typeof id!=='string'||!/^(speaker_\d+|unknown)$/.test(id)))fail('Некорректные идентификаторы голосов.');
+  if(!result.speakers.length||new Set(result.speakers).size!==result.speakers.length||result.speakers.some(id=>typeof id!=='string'||!/^(speaker_(?:\d+|channel_[01])|unknown)$/.test(id)))fail('Некорректные идентификаторы голосов.');
   const ids=new Set();let previous=-1;
   for(const s of result.segments){
     if(typeof s.id!=='string'||!/^[a-zA-Z0-9_-]{1,160}$/.test(s.id)||ids.has(s.id)||!Number.isFinite(s.start)||!Number.isFinite(s.end)||s.start<0||s.start<previous||s.end<s.start||s.end>result.duration+.1||!result.speakers.includes(s.speaker)||typeof s.text!=='string'||!s.text.trim()||s.text.length>30000)fail('Некорректная реплика распознавания.');
@@ -90,9 +90,11 @@ export function createAudioService({store,rootDir,worker=transcribeLocal}) {
       const filename=url.searchParams.get('filename')||'';const extension=extname(filename).toLowerCase();
       if(!filename||filename.length>200||/[\x00-\x1f\\/]/.test(filename)||!audioTypes[extension])fail('Выберите аудиофайл OGG, MP3, WAV, M4A, FLAC или WebM.');
       const language=url.searchParams.get('language')||'auto',speakers=url.searchParams.get('speakers')||'auto';
+      const channelMode=url.searchParams.get('channelMode')||'mixed';
+      if(!['mixed','separate'].includes(channelMode))fail('Неизвестный режим аудиоканалов.');
       if(!['auto',...languages].includes(language)||!['auto','1','2','3','4'].includes(speakers))fail('Некорректный язык или количество голосов.');
       const limit=80*1024*1024;if(Number(req.headers['content-length'])>limit)fail('Максимальный размер аудио — 80 МБ.',413);
-      const job={id:randomUUID(),filename,extension,language,speakers:speakers==='auto'?-1:Number(speakers),status:'queued',stage:'queued',progress:0,createdAt:new Date().toISOString(),error:null};
+      const job={id:randomUUID(),filename,extension,language,channelMode,speakers:speakers==='auto'?-1:Number(speakers),status:'queued',stage:'queued',progress:0,createdAt:new Date().toISOString(),error:null};
       await mkdir(join(rootDir,job.id),{recursive:true});const filePath=paths(job).filePath;const file=await open(filePath,'wx');let size=0;const digest=createHash('sha256');
       try{for await(const chunk of req){size+=chunk.length;if(size>limit)fail('Максимальный размер аудио — 80 МБ.',413);digest.update(chunk);await file.writeFile(chunk);}if(!size)fail('Аудиофайл пуст.');}
       catch(error){await file.close();await unlink(filePath).catch(()=>{});throw error;}

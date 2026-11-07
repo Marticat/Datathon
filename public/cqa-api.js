@@ -12,11 +12,11 @@ export function filterDialogs(dialogs,filter={}) {
  return dialogs.filter(d=>(!filter.gross||d.grossAI===true)&&(!filter.language||d.lang===filter.language)&&(!query||[d.id,...d.raw.map(m=>m[2])].join(' ').toLocaleLowerCase().includes(query)));
 }
 const signature=c=>JSON.stringify([c.title,c.desc||'',c.type,(c.steps||[]).join(','),!!c.naAllowed,!!c.gross]);
-function relativeTime(timestamp,first){if(/^\d{4}-/.test(timestamp))return Math.max(0,(Date.parse(timestamp)-Date.parse(first))/1000)||0;return timestamp.split(':').reduce((n,p)=>n*60+Number(p),0);}
+function relativeTime(timestamp,first){if(/^\d{4}-/.test(timestamp)){const seconds=(Date.parse(timestamp)-Date.parse(first))/1000;return Number.isFinite(seconds)?Math.max(0,seconds):null;}return /^\d+(?::\d{2})+(?:\.\d{1,3})?$/.test(timestamp)?timestamp.split(':').reduce((n,p)=>n*60+Number(p),0):null;}
 export function toBootstrap(state,group,rubricId) {
  const rubric=state.rubrics.find(r=>r.id===rubricId)||state.rubrics.at(-1),checklist=toChecklist(rubric),results={},appeals={},evaluations={};
  const conversations=state.conversations.filter(c=>!group||c.groupId===group);
- const dialogs=conversations.map(c=>{const raw=c.transcript.map(m=>[Number.isFinite(m.startSec)?m.startSec:relativeTime(m.timestamp,c.transcript[0].timestamp),m.speaker,m.text,m.timestamp]);return {id:c.conversation_id,hash:c.hash,seekable:c.transcript.every(m=>Number.isFinite(m.startSec)||/^\d+:\d{2}(?:\.\d{1,3})?$/.test(m.timestamp)),lang:c.language,channel:c.channel,audio:c.audio_url,raw,duration:c.durationSec||Math.max(...raw.map(m=>m[0]),1),operator:''};});
+ const dialogs=conversations.map(c=>{const raw=c.transcript.map(m=>[Number.isFinite(m.startSec)?m.startSec:relativeTime(m.timestamp,c.transcript[0].timestamp),m.speaker,m.text,m.timestamp]);return {id:c.conversation_id,hash:c.hash,seekable:c.transcript.every(m=>Number.isFinite(m.startSec)||/^\d+:\d{2}(?:\.\d{1,3})?$/.test(m.timestamp)),lang:c.language,channel:c.channel,audio:c.audio_url,raw,duration:Number.isFinite(c.durationSec)?c.durationSec:raw.every(m=>Number.isFinite(m[0]))?Math.max(...raw.map(m=>m[0]),1):null,operator:''};});
  for(const c of conversations){
   const e=state.evaluations.filter(e=>e.conversationId===c.conversation_id&&e.conversationHash===c.hash&&e.rubricId===rubric.id).at(-1);if(!e)continue;
   const dialog=dialogs.find(d=>d.id===c.conversation_id);
@@ -30,7 +30,7 @@ export function toBootstrap(state,group,rubricId) {
   }
   for(const a of state.appeals.filter(a=>a.evaluationId===e.id)){const original=e.answers.find(x=>x.criterionId===a.criterionId)?.answer;appeals[c.conversation_id+'|'+a.criterionId]={id:a.id,evaluationId:e.id,comment:a.comment,at:a.createdAt,dec:a.decision?{v:value(a.decision.answer),reason:a.decision.reason,at:a.decision.createdAt,kind:a.decision.answer===original?'confirmed':'changed'}:null};}
  }
- return {group,checklist,dialogs,results,appeals,evaluations,jobs:state.jobs.filter(j=>['queued','running'].includes(j.status)),rubricId:rubric.id};
+ return {group,groups:[...new Set(state.conversations.map(c=>c.groupId))].sort(),checklist,dialogs,results,appeals,evaluations,jobs:state.jobs.filter(j=>['queued','running'].includes(j.status)),rubricId:rubric.id};
 }
 export function createArchiveApi({fetcher=fetch,pause=ms=>new Promise(r=>setTimeout(r,ms)),onProgress=()=>{}}={}) {
  let current=null;
@@ -38,7 +38,7 @@ export function createArchiveApi({fetcher=fetch,pause=ms=>new Promise(r=>setTime
  async function refresh(){return current=toBootstrap(await request('/api/state'),current.group,current.rubricId);}
  return async function api(method,path,body){
   if(path.startsWith('/api/bootstrap')){const params=new URL(path,'http://localhost').searchParams;const input=params.get('group');let state=await request('/api/state');const group=input||state.conversations[0]?.groupId||'DEV';
-   if(!state.conversations.some(c=>c.groupId===group)){await request('/api/import',{groupId:group});state=await request('/api/state');}
+   if(input&&!state.conversations.some(c=>c.groupId===group)){await request('/api/import',{groupId:group});state=await request('/api/state');}
    return current=toBootstrap(state,group,params.get('rubricId'));
   }
   if(path==='/api/checklist'){const rubric=await request('/api/rubrics',toRubric(body));current.rubricId=rubric.id;await refresh();return current.checklist;}

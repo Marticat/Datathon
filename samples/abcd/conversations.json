@@ -1,0 +1,383 @@
+[
+  {
+    "conversation_id": "abcd-3592",
+    "channel": "agent chat",
+    "language": "EN",
+    "transcript": [
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 1 (source has no timestamps)",
+        "text": "Hi!"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 2 (source has no timestamps)",
+        "text": "How can I help you?"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 3 (source has no timestamps)",
+        "text": "Hi! I need to return an item, can you help me with that?"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 4 (source has no timestamps)",
+        "text": "sure, may I have your name please?"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 5 (source has no timestamps)",
+        "text": "Crystal Minh"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 6 (source has no timestamps)",
+        "text": "thanks, may I ask the reason for the return?"
+      },
+      {
+        "speaker": "system",
+        "timestamp": "Turn 7 (source has no timestamps)",
+        "text": "Account has been pulled up for Crystal Minh."
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 8 (source has no timestamps)",
+        "text": "I got the wrong size."
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 9 (source has no timestamps)",
+        "text": "ok, may I have your username, email address and order ID please?"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 10 (source has no timestamps)",
+        "text": "Username: cminh730"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 11 (source has no timestamps)",
+        "text": "cminh730@email.com"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 12 (source has no timestamps)",
+        "text": "Order ID: 3348917502"
+      },
+      {
+        "speaker": "system",
+        "timestamp": "Turn 13 (source has no timestamps)",
+        "text": "Purchase validation in progress ..."
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 14 (source has no timestamps)",
+        "text": "thanks so much! What is your membership level Crystal?"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 15 (source has no timestamps)",
+        "text": "I'm a bronze"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 16 (source has no timestamps)",
+        "text": "ok, was the purchase made in the last 90 days?"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 17 (source has no timestamps)",
+        "text": "No, I bought it in November."
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 18 (source has no timestamps)",
+        "text": "ok, unfortunately because it has been more than 90 days we cannot accept the return. Would there be anything else I can help you with?"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 19 (source has no timestamps)",
+        "text": "What if I ask really, really nicely?"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 20 (source has no timestamps)",
+        "text": "I can escalate to my manager if you'd like"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 21 (source has no timestamps)",
+        "text": "I'd just need your phone number."
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 22 (source has no timestamps)",
+        "text": "(977) 625-2661"
+      },
+      {
+        "speaker": "system",
+        "timestamp": "Turn 23 (source has no timestamps)",
+        "text": "Details of (977) 625-2661 have been entered."
+      },
+      {
+        "speaker": "system",
+        "timestamp": "Turn 24 (source has no timestamps)",
+        "text": "The manager has been notified."
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 25 (source has no timestamps)",
+        "text": "I'll look forward to hearing from them."
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 26 (source has no timestamps)",
+        "text": "Thanks for trying to help."
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 27 (source has no timestamps)",
+        "text": "OK, I have let my manager know, they will give you a call. Sorry I couldn't be of more assistance!"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 28 (source has no timestamps)",
+        "text": "Have a great night!"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 29 (source has no timestamps)",
+        "text": "That's it. Take care."
+      }
+    ]
+  },
+  {
+    "conversation_id": "abcd-9489",
+    "channel": "agent chat",
+    "language": "EN",
+    "transcript": [
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 1 (source has no timestamps)",
+        "text": "good afternoon, how can I help you?"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 2 (source has no timestamps)",
+        "text": "just wanted to check on the status of a refund"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 3 (source has no timestamps)",
+        "text": "sure, would you give me your full name or account ID"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 4 (source has no timestamps)",
+        "text": "Alessandro Phoenix"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 5 (source has no timestamps)",
+        "text": "aphoenix939"
+      },
+      {
+        "speaker": "system",
+        "timestamp": "Turn 6 (source has no timestamps)",
+        "text": "Account has been pulled up for Alessandro Phoenix."
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 7 (source has no timestamps)",
+        "text": "additional to this you would give me the order ID and email"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 8 (source has no timestamps)",
+        "text": "please"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 9 (source has no timestamps)",
+        "text": "7916676427"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 10 (source has no timestamps)",
+        "text": "aphoenix939@email.com"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 11 (source has no timestamps)",
+        "text": "no worries"
+      },
+      {
+        "speaker": "system",
+        "timestamp": "Turn 12 (source has no timestamps)",
+        "text": "Purchase validation in progress ..."
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 13 (source has no timestamps)",
+        "text": "everything in order, soon I will indicate the status of your refund."
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 14 (source has no timestamps)",
+        "text": "great"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 15 (source has no timestamps)",
+        "text": "let me know"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 16 (source has no timestamps)",
+        "text": "It is currently in progress and the payment method with which it is being processed is online towards your credit card."
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 17 (source has no timestamps)",
+        "text": "how much long till it is refunded"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 18 (source has no timestamps)",
+        "text": "less than a week"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 19 (source has no timestamps)",
+        "text": "great thanks for your help"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 20 (source has no timestamps)",
+        "text": "a pleasure to help you"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 21 (source has no timestamps)",
+        "text": "have a nice day"
+      }
+    ]
+  },
+  {
+    "conversation_id": "abcd-3695",
+    "channel": "agent chat",
+    "language": "EN",
+    "transcript": [
+      {
+        "speaker": "client",
+        "timestamp": "Turn 1 (source has no timestamps)",
+        "text": "HEY HO!"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 2 (source has no timestamps)",
+        "text": "good afternoon, how can I help you?"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 3 (source has no timestamps)",
+        "text": "I've got a promo code and I want to know when they expire."
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 4 (source has no timestamps)",
+        "text": "I'd like to use it to buy some hats for my cat."
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 5 (source has no timestamps)",
+        "text": "sure!  let me check that."
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 6 (source has no timestamps)",
+        "text": "one moment please"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 7 (source has no timestamps)",
+        "text": "Some people think it's funny to put hats on cats...I do not feel that way."
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 8 (source has no timestamps)",
+        "text": "cats deserve to look good too"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 9 (source has no timestamps)",
+        "text": "exactly!"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 10 (source has no timestamps)",
+        "text": "ok, just to verify you already tried to use the code?"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 11 (source has no timestamps)",
+        "text": "No, I just want to see how long they last for."
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 12 (source has no timestamps)",
+        "text": "Ok, sorry for the doubt and I will answer your question."
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 13 (source has no timestamps)",
+        "text": "one moment please"
+      },
+      {
+        "speaker": "system",
+        "timestamp": "Turn 14 (source has no timestamps)",
+        "text": "Searching the FAQ pages ..."
+      },
+      {
+        "speaker": "system",
+        "timestamp": "Turn 15 (source has no timestamps)",
+        "text": "System Action: search timing"
+      },
+      {
+        "speaker": "system",
+        "timestamp": "Turn 16 (source has no timestamps)",
+        "text": "FAQ answer related to timing (question4) was selected."
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 17 (source has no timestamps)",
+        "text": "Ok, all promo codes expire after 7 days without fail."
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 18 (source has no timestamps)",
+        "text": "Perfect. Thanks"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 19 (source has no timestamps)",
+        "text": "not problem! a pleasure to help you and your cat too"
+      },
+      {
+        "speaker": "client",
+        "timestamp": "Turn 20 (source has no timestamps)",
+        "text": "That's all, have a great day! Don't forget to spay or neuter your pet!"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 21 (source has no timestamps)",
+        "text": "have a nice day"
+      },
+      {
+        "speaker": "operator",
+        "timestamp": "Turn 22 (source has no timestamps)",
+        "text": "I won't"
+      }
+    ]
+  }
+]

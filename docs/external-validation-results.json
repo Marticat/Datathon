@@ -1,0 +1,737 @@
+{
+  "notice": "Actual local inference outputs; NOT reference/ground-truth labels and NOT injected into fresh app state. Audio roles manually confirmed; ASR text unchanged.",
+  "date": "2026-11-08",
+  "cases": [
+    {
+      "source": "ABCD",
+      "sourceId": "abcd-3592",
+      "conversationId": "abcd-3592",
+      "conversationHash": "a8510f5f412704715c8778b2d5810e4b746e722fa262b6ab155a7ff3e0ceb28d",
+      "model": "qwen3.5:9b",
+      "modelDigest": "56671c2ab9385f9cfcb404638e32cd62d88e3501d44822208363c010179a3c90",
+      "runtimeVersion": "0.40.15",
+      "promptVersion": "cqa-2026-11-08-v3-focused",
+      "pipelineVersion": "focused-default-v1",
+      "createdAt": "2026-11-07T21:16:16.724Z",
+      "durationMs": 37993,
+      "score": 90,
+      "critical": false,
+      "answers": [
+        {
+          "criterionId": "c1",
+          "answer": "no",
+          "explanation": "Первый ответ оператора: приветствие на языке клиента подтверждено, представление не подтверждено.",
+          "evidenceIds": [
+            "m1"
+          ],
+          "checkedRange": {
+            "from": "m1",
+            "to": "m29"
+          }
+        },
+        {
+          "criterionId": "c2",
+          "answer": "yes",
+          "explanation": "Изначально данных не хватало; оператор уточнил недостающие сведения до ответа.",
+          "evidenceIds": [
+            "m14",
+            "m16",
+            "m21"
+          ],
+          "checkedRange": {
+            "from": "m1",
+            "to": "m29"
+          }
+        },
+        {
+          "criterionId": "c3",
+          "answer": "yes",
+          "explanation": "Проверка личности подтверждена ДО раскрытия данных или защищённого действия. Система автоматически подняла аккаунт Crystal Minh (m7) после запроса имени, что является системным подтверждением идентичности.",
+          "evidenceIds": [
+            "m5",
+            "m7"
+          ],
+          "checkedRange": null
+        },
+        {
+          "criterionId": "c4",
+          "answer": 20,
+          "explanation": "По содержанию диалога существенные вопросы закрыты либо дан корректный следующий шаг. Внешние правила компании не проверены.",
+          "evidenceIds": [
+            "m3",
+            "m8",
+            "m16"
+          ],
+          "checkedRange": {
+            "from": "m1",
+            "to": "m29"
+          }
+        },
+        {
+          "criterionId": "c5",
+          "answer": "yes",
+          "explanation": "Оператор вежлив и отреагировал на просьбу клиента ('ask really, really nicely'), предложив эскалацию к менеджеру с извинениями за невозможность помочь напрямую.",
+          "evidenceIds": [
+            "m19",
+            "m27"
+          ],
+          "checkedRange": null
+        },
+        {
+          "criterionId": "c6",
+          "answer": 10,
+          "explanation": "Ответы ясные и связные. Оператор предупредил о необходимости номера телефона для эскалации, если клиент согласился на неё. Диалог логичен.",
+          "evidenceIds": [
+            "m21",
+            "m23"
+          ],
+          "checkedRange": null
+        },
+        {
+          "criterionId": "c7",
+          "answer": "yes",
+          "explanation": "Оператор подвёл итог (информировал о звонке менеджера), выразил сожаление и попрощался. Чат завершён корректно.",
+          "evidenceIds": [
+            "m27",
+            "m28"
+          ],
+          "checkedRange": null
+        },
+        {
+          "criterionId": "c8",
+          "answer": "no",
+          "explanation": "Ни оскорблений, ни предложения платных услуг в обход компании, ни раскрытия конфиденциальной информации не выявлено.",
+          "evidenceIds": [
+            "m14",
+            "m15"
+          ],
+          "checkedRange": null
+        }
+      ]
+    },
+    {
+      "source": "ABCD",
+      "sourceId": "abcd-9489",
+      "conversationId": "abcd-9489",
+      "conversationHash": "d7604deaa42ba6ab2f0ef0f063fb6083bbc0f9f2ca110671a378c0e913200410",
+      "model": "qwen3.5:9b",
+      "modelDigest": "56671c2ab9385f9cfcb404638e32cd62d88e3501d44822208363c010179a3c90",
+      "runtimeVersion": "0.40.15",
+      "promptVersion": "cqa-2026-11-08-v3-focused",
+      "pipelineVersion": "focused-default-v1",
+      "createdAt": "2026-11-07T21:17:38.111Z",
+      "durationMs": 34539,
+      "score": 90,
+      "critical": false,
+      "answers": [
+        {
+          "criterionId": "c1",
+          "answer": "no",
+          "explanation": "Первый ответ оператора: приветствие на языке клиента подтверждено, представление не подтверждено.",
+          "evidenceIds": [
+            "m1"
+          ],
+          "checkedRange": {
+            "from": "m1",
+            "to": "m21"
+          }
+        },
+        {
+          "criterionId": "c2",
+          "answer": "yes",
+          "explanation": "Изначально данных не хватало; оператор уточнил недостающие сведения до ответа.",
+          "evidenceIds": [
+            "m7",
+            "m8"
+          ],
+          "checkedRange": {
+            "from": "m1",
+            "to": "m21"
+          }
+        },
+        {
+          "criterionId": "c3",
+          "answer": "yes",
+          "explanation": "Идентификация подтверждена: оператор запросил имя и ID в m3, клиент предоставил данные в m4-m5, система подтвердила подтягивание аккаунта в m6. Действие выполнено ДО раскрытия статуса.",
+          "evidenceIds": [
+            "m3",
+            "m4",
+            "m5"
+          ],
+          "checkedRange": null
+        },
+        {
+          "criterionId": "c4",
+          "answer": 20,
+          "explanation": "По содержанию диалога существенные вопросы закрыты либо дан корректный следующий шаг. Внешние правила компании не проверены.",
+          "evidenceIds": [
+            "m2",
+            "m13",
+            "m16"
+          ],
+          "checkedRange": {
+            "from": "m1",
+            "to": "m21"
+          }
+        },
+        {
+          "criterionId": "c5",
+          "answer": "yes",
+          "explanation": "Оператор вежлив. Клиент выразил благодарность в m19, оператор отреагировал позитивно в m20. Проблем не было.",
+          "evidenceIds": [
+            "m19",
+            "m20"
+          ],
+          "checkedRange": null
+        },
+        {
+          "criterionId": "c6",
+          "answer": 10,
+          "explanation": "Ответы ясные и связные. Оператор предупредил о ходе проверки в m13. Нет сбоев или необходимости переспрашивать.",
+          "evidenceIds": [
+            "m13",
+            "m16"
+          ],
+          "checkedRange": null
+        },
+        {
+          "criterionId": "c7",
+          "answer": "yes",
+          "explanation": "Оператор завершил диалог вежливым прощанием 'have a nice day' в m21.",
+          "evidenceIds": [
+            "m21"
+          ],
+          "checkedRange": null
+        },
+        {
+          "criterionId": "c8",
+          "answer": "no",
+          "explanation": "Грубых нарушений (оскорблений, предложения платных услуг, утечки данных) не выявлено.",
+          "evidenceIds": [
+            "m16",
+            "m18"
+          ],
+          "checkedRange": null
+        }
+      ]
+    },
+    {
+      "source": "ABCD",
+      "sourceId": "abcd-3695",
+      "conversationId": "abcd-3695",
+      "conversationHash": "7a28e7bf5e53f98928d630633f50ed506531de79910b8dae4ed7d08e0e6a6b4e",
+      "model": "qwen3.5:9b",
+      "modelDigest": "56671c2ab9385f9cfcb404638e32cd62d88e3501d44822208363c010179a3c90",
+      "runtimeVersion": "0.40.15",
+      "promptVersion": "cqa-2026-11-08-v3-focused",
+      "pipelineVersion": "focused-default-v1",
+      "createdAt": "2026-11-07T21:18:46.604Z",
+      "durationMs": 29935,
+      "score": 81.25,
+      "critical": false,
+      "answers": [
+        {
+          "criterionId": "c1",
+          "answer": "no",
+          "explanation": "Первый ответ оператора: приветствие на языке клиента подтверждено, представление не подтверждено.",
+          "evidenceIds": [
+            "m2"
+          ],
+          "checkedRange": {
+            "from": "m1",
+            "to": "m22"
+          }
+        },
+        {
+          "criterionId": "c2",
+          "answer": "yes",
+          "explanation": "Изначально данных не хватало; оператор уточнил недостающие сведения до ответа.",
+          "evidenceIds": [
+            "m10",
+            "m11"
+          ],
+          "checkedRange": {
+            "from": "m1",
+            "to": "m22"
+          }
+        },
+        {
+          "criterionId": "c3",
+          "answer": "na",
+          "explanation": "Запрос не требовал идентификации, так как речь шла об общем вопросе о сроках действия промокодов.",
+          "evidenceIds": [
+            "m10"
+          ],
+          "checkedRange": null
+        },
+        {
+          "criterionId": "c4",
+          "answer": 20,
+          "explanation": "По содержанию диалога существенные вопросы закрыты либо дан корректный следующий шаг. Внешние правила компании не проверены.",
+          "evidenceIds": [
+            "m3",
+            "m11",
+            "m17"
+          ],
+          "checkedRange": {
+            "from": "m1",
+            "to": "m22"
+          }
+        },
+        {
+          "criterionId": "c5",
+          "answer": "yes",
+          "explanation": "Оператор вежлив и отреагировал на недовольство клиента касательно шляп для кошек, поддержав его позицию (m8).",
+          "evidenceIds": [
+            "m7",
+            "m8"
+          ],
+          "checkedRange": null
+        },
+        {
+          "criterionId": "c6",
+          "answer": 10,
+          "explanation": "Ответы ясные и связные. Оператор предупредил о паузе перед поиском информации (m6, m13).",
+          "evidenceIds": [
+            "m6",
+            "m13"
+          ],
+          "checkedRange": null
+        },
+        {
+          "criterionId": "c7",
+          "answer": "no",
+          "explanation": "Оператор попрощался (m21), но не подвёл итог диалога и не предложил дальнейшую помощь перед завершением.",
+          "evidenceIds": [
+            "m20",
+            "m21"
+          ],
+          "checkedRange": null
+        },
+        {
+          "criterionId": "c8",
+          "answer": "no",
+          "explanation": "Грубых ошибок, оскорблений или раскрытия конфиденциальной информации не выявлено.",
+          "evidenceIds": [
+            "m19"
+          ],
+          "checkedRange": null
+        }
+      ]
+    },
+    {
+      "source": "Perit",
+      "sourceId": "bluetooth",
+      "conversationId": "audio-b6d3591b-c3ec-4a3e-9e19-9851a0353784",
+      "conversationHash": "4b2d53900389aa2a8fe1996543ec4f4e47856cd0e27df926fa4da3f2cd2a3529",
+      "model": "qwen3.5:9b",
+      "modelDigest": "56671c2ab9385f9cfcb404638e32cd62d88e3501d44822208363c010179a3c90",
+      "runtimeVersion": "0.40.15",
+      "promptVersion": "cqa-2026-11-08-v3-focused",
+      "pipelineVersion": "focused-default-v1",
+      "createdAt": "2026-11-07T21:25:09.074Z",
+      "durationMs": 34728,
+      "score": 95,
+      "critical": false,
+      "answers": [
+        {
+          "criterionId": "c1",
+          "answer": "yes",
+          "explanation": "Первый ответ оператора: приветствие на языке клиента подтверждено, представление подтверждено.",
+          "evidenceIds": [
+            "m1"
+          ],
+          "checkedRange": {
+            "from": "m1",
+            "to": "m21"
+          }
+        },
+        {
+          "criterionId": "c2",
+          "answer": "yes",
+          "explanation": "Изначально данных не хватало; оператор уточнил недостающие сведения до ответа.",
+          "evidenceIds": [
+            "m1",
+            "m2",
+            "m3"
+          ],
+          "checkedRange": {
+            "from": "m1",
+            "to": "m21"
+          }
+        },
+        {
+          "criterionId": "c3",
+          "answer": "yes",
+          "explanation": "Идентификация подтверждена через номер телефона в m4 ДО того, как оператор раскрыл секретный код в m19.",
+          "evidenceIds": [
+            "m4",
+            "m19"
+          ],
+          "checkedRange": {
+            "from": "m4",
+            "to": "m19"
+          }
+        },
+        {
+          "criterionId": "c4",
+          "answer": 15,
+          "explanation": "Основной вопрос решён, но пропущена второстепенная деталь. Внешние правила компании не проверены.",
+          "evidenceIds": [
+            "m18"
+          ],
+          "checkedRange": {
+            "from": "m1",
+            "to": "m21"
+          }
+        },
+        {
+          "criterionId": "c5",
+          "answer": "yes",
+          "explanation": "Оператор вежлив. На недовольство клиента нет, но тон поддерживается доброжелательным на протяжении всего диалога.",
+          "evidenceIds": [
+            "m20"
+          ],
+          "checkedRange": {
+            "from": "m20",
+            "to": "m20"
+          }
+        },
+        {
+          "criterionId": "c6",
+          "answer": 10,
+          "explanation": "Ответы ясные и связные. Оператор предупреждал о разрыве соединения (m13) и давал чёткие инструкции.",
+          "evidenceIds": [
+            "m13"
+          ],
+          "checkedRange": {
+            "from": "m13",
+            "to": "m15"
+          }
+        },
+        {
+          "criterionId": "c7",
+          "answer": "yes",
+          "explanation": "Оператор подвёл итог действий в m19 и попрощался в m21.",
+          "evidenceIds": [
+            "m19",
+            "m21"
+          ],
+          "checkedRange": {
+            "from": "m19",
+            "to": "m21"
+          }
+        },
+        {
+          "criterionId": "c8",
+          "answer": "no",
+          "explanation": "Грубых нарушений нет. Оператор не оскорблял, не предлагал платные услуги и не раскрывал лишнюю конфиденциальную информацию (код был частью сессии).",
+          "evidenceIds": [
+            "m19"
+          ],
+          "checkedRange": {
+            "from": "m19",
+            "to": "m21"
+          }
+        }
+      ]
+    },
+    {
+      "source": "Perit",
+      "sourceId": "malware",
+      "conversationId": "audio-9e0ed0cc-de55-4615-96e9-42bc95f8e609",
+      "conversationHash": "954691927ba2a747c0545808c0d128824f14f229d96f22b37539143398be8e9e",
+      "model": "qwen3.5:9b",
+      "modelDigest": "56671c2ab9385f9cfcb404638e32cd62d88e3501d44822208363c010179a3c90",
+      "runtimeVersion": "0.40.15",
+      "promptVersion": "cqa-2026-11-08-v3-focused",
+      "pipelineVersion": "focused-default-v1",
+      "createdAt": "2026-11-07T21:26:17.424Z",
+      "durationMs": 34071,
+      "score": 100,
+      "critical": false,
+      "answers": [
+        {
+          "criterionId": "c1",
+          "answer": "yes",
+          "explanation": "Первый ответ оператора: приветствие на языке клиента подтверждено, представление подтверждено.",
+          "evidenceIds": [
+            "m1"
+          ],
+          "checkedRange": {
+            "from": "m1",
+            "to": "m20"
+          }
+        },
+        {
+          "criterionId": "c2",
+          "answer": "yes",
+          "explanation": "Изначально данных не хватало; оператор уточнил недостающие сведения до ответа.",
+          "evidenceIds": [
+            "m3",
+            "m4",
+            "m5"
+          ],
+          "checkedRange": {
+            "from": "m1",
+            "to": "m20"
+          }
+        },
+        {
+          "criterionId": "c3",
+          "answer": "na",
+          "explanation": "Идентификация не требовалась для общего вопроса о подготовке к установке. Имя оператора и клиента использовались вежливо, но проверка личности не была обязательным условием безопасности в данном контексте.",
+          "evidenceIds": [
+            "m17"
+          ],
+          "checkedRange": {
+            "from": "m17",
+            "to": "m17"
+          }
+        },
+        {
+          "criterionId": "c4",
+          "answer": 20,
+          "explanation": "По содержанию диалога существенные вопросы закрыты либо дан корректный следующий шаг. Внешние правила компании не проверены.",
+          "evidenceIds": [
+            "m2",
+            "m4",
+            "m5"
+          ],
+          "checkedRange": {
+            "from": "m1",
+            "to": "m20"
+          }
+        },
+        {
+          "criterionId": "c5",
+          "answer": "yes",
+          "explanation": "Оператор вежлив. Клиент не выражал недовольства, поэтому эмпатия проявлялась через стандартное вежливое общение.",
+          "evidenceIds": [
+            "m18"
+          ],
+          "checkedRange": {
+            "from": "m18",
+            "to": "m18"
+          }
+        },
+        {
+          "criterionId": "c6",
+          "answer": 10,
+          "explanation": "Ответы ясные и связные. Оператор предупредил о времени (m5) и условиях доступа (m7).",
+          "evidenceIds": [
+            "m5",
+            "m7"
+          ],
+          "checkedRange": {
+            "from": "m5",
+            "to": "m7"
+          }
+        },
+        {
+          "criterionId": "c7",
+          "answer": "yes",
+          "explanation": "Оператор подвёл итог в m17 и попрощался в m19.",
+          "evidenceIds": [
+            "m19"
+          ],
+          "checkedRange": {
+            "from": "m19",
+            "to": "m19"
+          }
+        },
+        {
+          "criterionId": "c8",
+          "answer": "no",
+          "explanation": "Грубых ошибок не выявлено.",
+          "evidenceIds": [
+            "m1"
+          ],
+          "checkedRange": {
+            "from": "m1",
+            "to": "m20"
+          }
+        }
+      ]
+    }
+  ],
+  "recordings": [
+    {
+      "sourceId": "bluetooth",
+      "mixed": {
+        "speakers": [
+          "speaker_0",
+          "unknown"
+        ],
+        "segments": 41,
+        "uncertainSegments": 12,
+        "overlapSegments": 0,
+        "durationSec": 167.064,
+        "sourceSHA256": "90248d25706b8da06ed78bfbd3075acc2994a08e60c0800e60b3cc7bc87160cd",
+        "provenance": {
+          "asrModel": "whisper-small",
+          "asrModelSHA256": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671",
+          "asrEngine": "faster-whisper",
+          "diarization": "sherpa-onnx 2.0.1",
+          "segmentationSHA256": "220ad67ca923bef2fa91f2390c786097bf305bceb5e261d4af67b38e938e1079",
+          "embeddingSHA256": "5ef208a9da1453335308a6b6f4e6dfbd7e183a38b604de0a57664f45d257fe94"
+        }
+      },
+      "separate": {
+        "speakers": [
+          "speaker_channel_0",
+          "speaker_channel_1"
+        ],
+        "segments": 34,
+        "uncertainSegments": 4,
+        "overlapSegments": 4,
+        "durationSec": 167.064,
+        "sourceSHA256": "90248d25706b8da06ed78bfbd3075acc2994a08e60c0800e60b3cc7bc87160cd",
+        "provenance": {
+          "asrModel": "whisper-small",
+          "asrModelSHA256": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671",
+          "asrEngine": "faster-whisper",
+          "channelMode": "separate",
+          "diarization": "source-stereo-channels",
+          "sourceChannels": 2,
+          "channelSpeakers": {
+            "0": "speaker_channel_0",
+            "1": "speaker_channel_1"
+          },
+          "detectedChannelLanguages": [
+            "en",
+            "en"
+          ]
+        }
+      }
+    },
+    {
+      "sourceId": "malware",
+      "mixed": {
+        "speakers": [
+          "speaker_0",
+          "unknown"
+        ],
+        "segments": 37,
+        "uncertainSegments": 8,
+        "overlapSegments": 0,
+        "durationSec": 167.16,
+        "sourceSHA256": "6bbfdebc7ba28a521d219c80a52b324d93eca3ac1c9286344c41dae7a4a7c8e8",
+        "provenance": {
+          "asrModel": "whisper-small",
+          "asrModelSHA256": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671",
+          "asrEngine": "faster-whisper",
+          "diarization": "sherpa-onnx 2.0.1",
+          "segmentationSHA256": "220ad67ca923bef2fa91f2390c786097bf305bceb5e261d4af67b38e938e1079",
+          "embeddingSHA256": "5ef208a9da1453335308a6b6f4e6dfbd7e183a38b604de0a57664f45d257fe94"
+        }
+      },
+      "separate": {
+        "speakers": [
+          "speaker_channel_0",
+          "speaker_channel_1"
+        ],
+        "segments": 40,
+        "uncertainSegments": 11,
+        "overlapSegments": 0,
+        "durationSec": 167.16,
+        "sourceSHA256": "6bbfdebc7ba28a521d219c80a52b324d93eca3ac1c9286344c41dae7a4a7c8e8",
+        "provenance": {
+          "asrModel": "whisper-small",
+          "asrModelSHA256": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671",
+          "asrEngine": "faster-whisper",
+          "channelMode": "separate",
+          "diarization": "source-stereo-channels",
+          "sourceChannels": 2,
+          "channelSpeakers": {
+            "0": "speaker_channel_0",
+            "1": "speaker_channel_1"
+          },
+          "detectedChannelLanguages": [
+            "en",
+            "en"
+          ]
+        }
+      }
+    }
+  ],
+  "promptExperiment": {
+    "notice": "Stopped after repeated original errors; not adopted in production",
+    "completedCases": [
+      {
+        "id": "abcd-3592",
+        "answers": [
+          {
+            "criterionId": "c1",
+            "answer": "no"
+          },
+          {
+            "criterionId": "c2",
+            "answer": "yes"
+          },
+          {
+            "criterionId": "c3",
+            "answer": "yes"
+          },
+          {
+            "criterionId": "c4",
+            "answer": 20
+          },
+          {
+            "criterionId": "c5",
+            "answer": "yes"
+          },
+          {
+            "criterionId": "c6",
+            "answer": 10
+          },
+          {
+            "criterionId": "c7",
+            "answer": "yes"
+          },
+          {
+            "criterionId": "c8",
+            "answer": "no"
+          }
+        ]
+      },
+      {
+        "id": "abcd-9489",
+        "answers": [
+          {
+            "criterionId": "c1",
+            "answer": "no"
+          },
+          {
+            "criterionId": "c2",
+            "answer": "yes"
+          },
+          {
+            "criterionId": "c3",
+            "answer": "yes"
+          },
+          {
+            "criterionId": "c4",
+            "answer": 20
+          },
+          {
+            "criterionId": "c5",
+            "answer": "yes"
+          },
+          {
+            "criterionId": "c6",
+            "answer": 10
+          },
+          {
+            "criterionId": "c7",
+            "answer": "yes"
+          },
+          {
+            "criterionId": "c8",
+            "answer": "no"
+          }
+        ]
+      }
+    ]
+  }
+}

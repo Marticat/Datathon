@@ -249,6 +249,8 @@ body {
 .cqa .cqa-q-item h4 { font-size: 14px; font-weight: 600; }
 .cqa .cqa-q-item p { color: var(--cqa-muted); font-size: 13px; overflow-wrap: anywhere; }
 .cqa .cqa-empty { padding: 20px; color: var(--cqa-muted); border: 1px dashed var(--cqa-line); border-radius: 6px; }
+.cqa .cqa-empty p + p { margin-top: 12px; }
+.cqa .cqa-empty a.cqa-btn { display: inline-block; max-width: 100%; margin-bottom: 4px; color: var(--cqa-fg); text-decoration: none; }
 
 /* Чек-лист */
 .cqa .cqa-ck { display: flex; flex-direction: column; gap: 8px; }

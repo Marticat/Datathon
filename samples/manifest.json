@@ -1,0 +1,89 @@
+{
+  "purpose": "External validation examples; never DEV/PROD or official Ground Truth",
+  "sources": [
+    {
+      "dataset": "ABCD",
+      "author": "ASAPP Research",
+      "revision": "6b8700ce67c6b37b062dd7a60abc76d7ef832a97",
+      "url": "https://raw.githubusercontent.com/asappresearch/abcd/6b8700ce67c6b37b062dd7a60abc76d7ef832a97/data/abcd_sample.json",
+      "license": "MIT",
+      "originalSHA256": "151e0c487493ab376bb5115538f3bfd6d2f460c94f9daa5cdf04e55bccdf4808",
+      "file": "abcd/conversations.json",
+      "sha256": "5c832ad1103100961e061f46bf4419e26f402cdf569dea1a1cfd3e809684411a",
+      "sourceIds": [
+        3592,
+        9489,
+        3695
+      ],
+      "adaptation": "All original turns retained in order. agent/customer/action mapped to operator/client/system. IDs prefixed abcd-. No source timestamps exist: ordinal labels are displayed, not invented times. Scenario metadata is not sent to scorer."
+    },
+    {
+      "dataset": "Perit Duplex Support Conversations (English)",
+      "author": "Perit AI",
+      "revision": "2b280ef137530d682212d33916c3b6986d0d72ab",
+      "url": "https://huggingface.co/datasets/perit-ai/perit-duplex-support-en/resolve/2b280ef137530d682212d33916c3b6986d0d72ab/data/BluetoothWontConnect_S043_AGT-Aldo_CUS-Michael_2m47s.wav",
+      "license": "CC-BY-4.0",
+      "licenseURL": "https://creativecommons.org/licenses/by/4.0/",
+      "originalSHA256": "66bf417279f35fa7f8786345242d095f45eb0a3a67f3ec979f59b815d26290ed",
+      "file": "perit/bluetooth.flac",
+      "sha256": "90248d25706b8da06ed78bfbd3075acc2994a08e60c0800e60b3cc7bc87160cd",
+      "pcmSHA256": "d20cd237d5afd440a1d32970a3da4b9af93a50dd52dec3d28b839b93e1c4792a",
+      "durationSec": 167.064,
+      "sampleRate": 48000,
+      "channels": 2,
+      "adaptation": "Lossless WAV to FLAC only; full recording, original stereo, no cuts or role assumptions. Decoded PCM hash verified equal.",
+      "metadata": {
+        "file_name": "BluetoothWontConnect_S043_AGT-Aldo_CUS-Michael_2m47s.wav",
+        "duration_s": "167.06",
+        "speaker_pair": "Aldo_Michael",
+        "session": "Michael_Aldo",
+        "agent": "Aldo",
+        "customer": "Michael",
+        "script_id": "S043",
+        "scenario": "Bluetooth Wont Connect",
+        "language": "en-US",
+        "sample_rate": "48000",
+        "channels": "2",
+        "source_sample_rate": "48000",
+        "source_relpath": "Michael_Aldo_YTP/Individual files blue and mike 41 - 60 2026-10-14_56min_YTP/BluetoothWontConnect_S043_AGT-Aldo_CUS-Michael_2m47s.wav",
+        "left_onset_s": "0.68",
+        "right_onset_s": "2.34",
+        "opening_channel": "left"
+      }
+    },
+    {
+      "dataset": "Perit Duplex Support Conversations (English)",
+      "author": "Perit AI",
+      "revision": "2b280ef137530d682212d33916c3b6986d0d72ab",
+      "url": "https://huggingface.co/datasets/perit-ai/perit-duplex-support-en/resolve/2b280ef137530d682212d33916c3b6986d0d72ab/data/MalwarePopup_S048_AGT-Michael_CUS-Aldo_2m47s.wav",
+      "license": "CC-BY-4.0",
+      "licenseURL": "https://creativecommons.org/licenses/by/4.0/",
+      "originalSHA256": "bfbbfc6be29e760ca87f26953292b4052657f833f539178e30afad08b03e5c23",
+      "file": "perit/malware.flac",
+      "sha256": "6bbfdebc7ba28a521d219c80a52b324d93eca3ac1c9286344c41dae7a4a7c8e8",
+      "pcmSHA256": "5a420e1058745144cedd202eb61fd4ad392e6996e7b326690ee3015e25626af9",
+      "durationSec": 167.16,
+      "sampleRate": 48000,
+      "channels": 2,
+      "adaptation": "Lossless WAV to FLAC only; full recording, original stereo, no cuts or role assumptions. Decoded PCM hash verified equal.",
+      "metadata": {
+        "file_name": "MalwarePopup_S048_AGT-Michael_CUS-Aldo_2m47s.wav",
+        "duration_s": "167.16",
+        "speaker_pair": "Aldo_Michael",
+        "session": "Michael_Aldo",
+        "agent": "Michael",
+        "customer": "Aldo",
+        "script_id": "S048",
+        "scenario": "Malware Popup",
+        "language": "en-US",
+        "sample_rate": "48000",
+        "channels": "2",
+        "source_sample_rate": "48000",
+        "source_relpath": "Michael_Aldo_YTP/Individual files blue and mike 41 - 60 2026-10-14_56min_YTP/MalwarePopup_S048_AGT-Michael_CUS-Aldo_2m47s.wav",
+        "left_onset_s": "1.02",
+        "right_onset_s": "6.2",
+        "opening_channel": "left"
+      }
+    }
+  ]
+}

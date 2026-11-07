@@ -8,6 +8,16 @@ const result={language:'RU',duration:12,speakers:['speaker_0','speaker_1'],segme
 test('audio ranges support seeking, suffixes and explicit unsatisfiable ranges',()=>{
  assert.deepEqual(mediaRange('bytes=2-5',10),{start:2,end:5});assert.deepEqual(mediaRange('bytes=-3',10),{start:7,end:9});assert.deepEqual(mediaRange('bytes=8-',10),{start:8,end:9});assert.throws(()=>mediaRange('bytes=20-30',10));assert.throws(()=>mediaRange('bytes=0-1,4-5',10));
 });
+test('upload preserves explicit separate-channel mode and rejects unknown modes',async t=>{
+ mkdirSync(resolve('.local/tests'),{recursive:true});const dir=mkdtempSync(resolve('.local/tests/audio-mode-'));let observed;
+ const app=createApp({dataFile:join(dir,'state.json'),audioWorker:async job=>{observed=job;return structuredClone(result);}});
+ await new Promise(done=>app.server.listen(0,'127.0.0.1',done));const base=`http://127.0.0.1:${app.server.address().port}`;
+ t.after(async()=>{app.server.closeAllConnections();await new Promise(done=>app.server.close(done));rmSync(dir,{recursive:true,force:true});});
+ const bad=await fetch(base+'/api/audio/upload?filename=stereo.flac&channelMode=invented',{method:'POST',body:'bytes'});assert.equal(bad.status,400);
+ const response=await fetch(base+'/api/audio/upload?filename=stereo.flac&channelMode=separate',{method:'POST',body:'bytes'});assert.equal(response.status,202);const job=await response.json();
+ for(let i=0;i<50;i++){if(app.store.read().audioJobs[0]?.status==='needs_review')break;await new Promise(done=>setTimeout(done,10));}
+ assert.equal(observed.channelMode,'separate');assert.equal(app.store.read().audioJobs[0].channelMode,'separate');assert.equal(job.channelMode,'separate');
+});
 test('audio review requires explicit roles and immutable source segment identities',()=>{
  const draft={language:'RU',roles:{speaker_0:'operator',speaker_1:'client'},segments:result.segments.map(s=>({id:s.id,speaker:s.speaker,text:s.text,include:true}))};
  assert.equal(validateAudioDraft(result,draft,true).segments.length,2);

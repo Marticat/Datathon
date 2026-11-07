@@ -10,6 +10,8 @@
     "test": "node --test",
     "check": "node --check server/index.mjs && node --check public/app.js && node --check public/cqa.js && node --check public/cqa-api.js && node --check public/cqa-init.js && node --check public/audio.js",
     "evaluate": "node --env-file-if-exists=.env scripts/evaluate.mjs",
-    "submit": "node --env-file-if-exists=.env scripts/submit.mjs"
+    "submit": "node --env-file-if-exists=.env scripts/submit.mjs",
+    "examples": "node --env-file-if-exists=.env scripts/examples.mjs",
+    "doctor": "node --env-file-if-exists=.env scripts/doctor.mjs"
   }
 }

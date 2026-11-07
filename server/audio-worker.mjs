@@ -5,7 +5,7 @@ import { resolve,delimiter } from 'node:path';
 export function transcribeLocal(job,onProgress) {
   return new Promise((accept,reject)=>{
     const python=process.env.CQA_PYTHON||'python';
-    const child=spawn(python,[resolve('scripts/transcribe_audio.py'),'--input',job.filePath,'--output',job.resultPath,'--language',job.language,'--speakers',String(job.speakers)],{
+    const child=spawn(python,[resolve('scripts/transcribe_audio.py'),'--input',job.filePath,'--output',job.resultPath,'--language',job.language,'--speakers',String(job.speakers),'--channel-mode',job.channelMode||'mixed'],{
       shell:false,windowsHide:true,env:{...process.env,PYTHONIOENCODING:'utf-8',PYTHONPATH:resolve('.local/audio-python')+(process.env.PYTHONPATH?delimiter+process.env.PYTHONPATH:'')},stdio:['ignore','pipe','pipe']
     });
     let buffer='',error='',stderr='',closed=false;
