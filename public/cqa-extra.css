@@ -117,3 +117,12 @@ body:has(> [data-cqa]) { margin: 0; background: #f7f7f4; }
 .cqa #clist .note { margin: 0 0 10px; padding: 10px 14px; border-radius: 8px; background: var(--hl); color: var(--ink); font-size: 14px; }
 .cqa .fs { border: 0; margin: 0; padding: 0; min-width: 0; }
 .cqa .fs:disabled .cl { opacity: .75; }
+
+/* ---------- раскрывающиеся критерии ---------- */
+.cqa .right-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.cqa button.cr-t { width: 100%; border: 0; background: transparent; padding: 0; font: inherit; font-weight: 700; color: inherit; text-align: left; cursor: pointer; }
+.cqa button.cr-t:hover span { color: var(--g); }
+.cqa .cr-t .chev { font-weight: 400; color: var(--mut); transition: transform .2s; width: 14px; text-align: center; }
+.cqa .cr.open .cr-t .chev { transform: rotate(180deg); }
+.cqa .cr .cr-d { display: none; }
+.cqa .cr.open .cr-d { display: block; }

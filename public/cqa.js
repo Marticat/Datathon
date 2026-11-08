@@ -334,12 +334,14 @@
       }
       var mk = mark(c, x.fin), changed = x.fin !== x.orig;
       var pts = c.gross ? (x.fin ? 'нарушение' : 'нет') : x.fin === 'na' ? 'N/A' : p ? fmt(p.raw) + ' / ' + fmt(p.w) : '-';
-      return '<div class="cr' + (state.focus === d.id + '|' + c.id ? ' focus' : '') + (c.gross ? ' gross' : '') + '" data-crit="' + esc(c.id) + '">' +
-        '<div class="cr-t"><i class="' + mk[0] + '">' + mk[1] + '</i><span>' + esc(c.title) + '</span><em>' + pts + '</em></div>' +
-        '<p class="ans">Ответ: <b>' + esc(ans(c, x.fin)) + '</b>' + (changed ? ' · <s>было: ' + esc(ans(c, x.orig)) + '</s>' : '') +
+      /* свёрнуто по умолчанию: видны значок, название и баллы; подробности раскрываются по клику */
+      var key = d.id + '|' + c.id, open = !!(state.openCrit && state.openCrit[key]) || state.focus === key || state.form === key;
+      return '<div class="cr' + (open ? ' open' : '') + (state.focus === key ? ' focus' : '') + (c.gross ? ' gross' : '') + '" data-crit="' + esc(c.id) + '">' +
+        '<button class="cr-t" type="button" data-act="crit-toggle" data-key="' + esc(key) + '" aria-expanded="' + open + '"><i class="' + mk[0] + '">' + mk[1] + '</i><span>' + esc(c.title) + '</span><em>' + pts + '</em><b class="chev" aria-hidden="true">⌄</b></button>' +
+        '<div class="cr-d"><p class="ans">Ответ: <b>' + esc(ans(c, x.fin)) + '</b>' + (changed ? ' · <s>было: ' + esc(ans(c, x.orig)) + '</s>' : '') +
         (c.gross ? ' · без баллов, отмечается отдельно' : ' · вес ' + c.weight) + '</p>' +
         (r.v === 'na' ? '<p><b>Почему N/A.</b> ' + esc(r.na || '') + (c.naRule ? ' <span class="rule">Условие: ' + esc(c.naRule) + '</span>' : '') + '</p>' : '<p>' + esc(r.why) + '</p>') +
-        evChips(d, x) + '</div>';
+        evChips(d, x) + '</div></div>';
     }
     function scoreHTML(d) {
       var rows = rowsFor(d), fin = score(rows, true), org = score(rows, false);
@@ -347,7 +349,8 @@
       if (pend) fin.total = org.total = null;
       var diff = rnd(fin.total) !== rnd(org.total), gross = rows.some(function (x) { return !x.pending && x.c.gross && x.fin === 1; });
       var naN = rows.filter(function (x) { return !x.pending && x.fin === 'na'; }).length;
-      var h = '<h3>Оценка качества</h3><div class="score"><div class="ring" data-p="' + (fin.total == null ? 0 : Math.max(0, Math.min(100, rnd(fin.total)))) + '">' +
+      var allOpen = state.checklist.criteria.every(function (c) { return state.openCrit && state.openCrit[d.id + '|' + c.id]; });
+      var h = '<div class="right-h"><h3>Оценка качества</h3><button class="chip" type="button" data-act="crit-all" data-open="' + (allOpen ? '0' : '1') + '">' + (allOpen ? 'Свернуть все' : 'Развернуть все') + '</button></div><div class="score"><div class="ring" data-p="' + (fin.total == null ? 0 : Math.max(0, Math.min(100, rnd(fin.total)))) + '">' +
         '<div><span><b>' + fmt(fin.total) + '</b><br><small>/ 100</small></span></div></div>' +
         '<p class="sum">' + (pend ? 'Для этой версии чек-листа нужна оценка. ' :
           fin.total != null ? '<b>Набрано ' + fmt(fin.raw) + ' из ' + fmt(fin.w) + '</b>' + (naN ? ' (без критериев N/A)' : '') + ', итог = ' + fmt(fin.raw) + ' / ' + fmt(fin.w) + ' × 100. ' : '') +
@@ -783,6 +786,13 @@
         state.form = ds + '|' + cid; render();
       } else if (a === 'appeal-cancel') {
         state.form = null; render();
+      } else if (a === 'crit-toggle') {
+        var k = el.getAttribute('data-key'), cr = el.closest('.cr');
+        state.openCrit = state.openCrit || {}; state.openCrit[k] = !cr.classList.contains('open');
+        cr.classList.toggle('open', state.openCrit[k]); el.setAttribute('aria-expanded', String(state.openCrit[k]));
+      } else if (a === 'crit-all') {
+        var d0 = dlg(state.did), openAll = el.getAttribute('data-open') === '1'; state.openCrit = state.openCrit || {};
+        state.checklist.criteria.forEach(function (c) { state.openCrit[d0.id + '|' + c.id] = openAll; }); render();
       } else if (a === 'to-foot') {
         var foot = root.querySelector('#cqa-foot'); if (foot) foot.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else if (a === 'appeal-send') {
