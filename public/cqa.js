@@ -191,16 +191,18 @@
       var live = rows.filter(function (x) { return !x.pending && !x.c.gross && (useFin ? x.fin : x.orig) !== 'na'; });
       var sum = live.reduce(function (a, x) { return a + x.c.weight; }, 0);
       var f = sum > 0 ? 100 / sum : 0;
-      var out = { total: 0, byRow: {}, bySec: {} };
+      /* raw / w: баллы в собственном весе критерия (10 из 10, 15 из 20) — так показываем в интерфейсе;
+         eff / pts: те же баллы после перераспределения веса N/A, из них складывается итог из 100 */
+      var out = { total: 0, byRow: {}, bySec: {}, raw: 0, w: sum };
       rows.forEach(function (x) {
         var v = useFin ? x.fin : x.orig;
         if (x.pending || x.c.gross || v === 'na') { out.byRow[x.c.id] = null; return; }
         var norm = x.c.type === 'binary' ? v : v / maxOf(x.c);
-        var eff = x.c.weight * f, pts = eff * norm;
-        out.byRow[x.c.id] = { eff: eff, pts: pts };
-        out.total += pts;
-        var s = out.bySec[x.c.section] || (out.bySec[x.c.section] = { eff: 0, pts: 0 });
-        s.eff += eff; s.pts += pts;
+        var eff = x.c.weight * f, pts = eff * norm, raw = x.c.weight * norm;
+        out.byRow[x.c.id] = { eff: eff, pts: pts, raw: raw, w: x.c.weight };
+        out.total += pts; out.raw += raw;
+        var s = out.bySec[x.c.section] || (out.bySec[x.c.section] = { eff: 0, pts: 0, raw: 0, w: 0 });
+        s.eff += eff; s.pts += pts; s.raw += raw; s.w += x.c.weight;
       });
       if (sum <= 0) out.total = null;
       return out;
@@ -330,7 +332,7 @@
           '<p>Для текущей версии чек-листа оценки ещё нет.</p></div>';
       }
       var mk = mark(c, x.fin), changed = x.fin !== x.orig;
-      var pts = c.gross ? (x.fin ? 'нарушение' : 'нет') : x.fin === 'na' ? 'N/A' : p ? fmt(p.pts) + ' / ' + fmt(p.eff) : '-';
+      var pts = c.gross ? (x.fin ? 'нарушение' : 'нет') : x.fin === 'na' ? 'N/A' : p ? fmt(p.raw) + ' / ' + fmt(p.w) : '-';
       return '<div class="cr' + (state.focus === d.id + '|' + c.id ? ' focus' : '') + (c.gross ? ' gross' : '') + '" data-crit="' + esc(c.id) + '">' +
         '<div class="cr-t"><i class="' + mk[0] + '">' + mk[1] + '</i><span>' + esc(c.title) + '</span><em>' + pts + '</em></div>' +
         '<p class="ans">Ответ: <b>' + esc(ans(c, x.fin)) + '</b>' + (changed ? ' · <s>было: ' + esc(ans(c, x.orig)) + '</s>' : '') +
@@ -346,16 +348,17 @@
       var naN = rows.filter(function (x) { return !x.pending && x.fin === 'na'; }).length;
       var h = '<h3>Оценка качества</h3><div class="score"><div class="ring" data-p="' + (fin.total == null ? 0 : Math.max(0, Math.min(100, rnd(fin.total)))) + '">' +
         '<div><span><b>' + fmt(fin.total) + '</b><br><small>/ 100</small></span></div></div>' +
-        '<p class="sum">' + (pend ? 'Для этой версии чек-листа нужна оценка. ' : '') +
+        '<p class="sum">' + (pend ? 'Для этой версии чек-листа нужна оценка. ' :
+          fin.total != null ? '<b>Набрано ' + fmt(fin.raw) + ' из ' + fmt(fin.w) + '</b>' + (naN ? ' (без критериев N/A)' : '') + ', итог = ' + fmt(fin.raw) + ' / ' + fmt(fin.w) + ' × 100. ' : '') +
         (diff ? 'Исходная оценка модели: <b>' + fmt(org.total) + '</b>. Итог пересчитан с учётом решений проверяющего. ' : !pend ? 'Первоначальные ответы модели сохранены. ' : '') +
-        (naN ? 'Критерии с N/A (' + naN + ') не входят в итог: их вес перераспределён между остальными. ' : '') +
+        (naN ? 'Критерии с N/A (' + naN + ') не входят в итог. ' : '') +
         'Чек-лист «' + esc(state.checklist.name) + '» v' + listVersion() + ', округление до ' + state.checklist.rounding + ' зн.</p></div>' +
         (gross ? '<p class="flag">⚑ Грубая ошибка зафиксирована. Флаг учитывается отдельно от балла.</p>' : '');
       state.checklist.sections.forEach(function (s) {
         var sr = rows.filter(function (x) { return x.c.section === s.id; });
         if (!sr.length) return;
         var t = fin.bySec[s.id];
-        h += '<h4 class="grp sec">' + esc(s.title) + '<span>' + (t ? fmt(t.pts) + ' / ' + fmt(t.eff) : '-') + '</span></h4>' +
+        h += '<h4 class="grp sec">' + esc(s.title) + '<span>' + (t ? fmt(t.raw) + ' / ' + fmt(t.w) : '-') + '</span></h4>' +
           sr.map(function (x) { return critHTML(d, x, fin); }).join('');
       });
       return h;
@@ -567,7 +570,7 @@
       var ev = (x.r.evidence || []).map(function (i) { var m = d.msgs[i]; return m ? '<p class="q">' + esc(shortTs(m.ts)) + ' · ' + esc(SP[m.sp] || m.sp) + ': «' + esc(m.tx) + '»</p>' : ''; }).join('');
       return '<div class="ov on"><button class="ov-bg" type="button" data-act="appeal-cancel" aria-label="Закрыть"></button>' +
         '<div class="mdl" role="dialog" aria-modal="true" aria-labelledby="cqa-mt"><h3 id="cqa-mt">Апелляция: ' + esc(c.title) + '</h3>' +
-        '<p><b>Оценка ИИ:</b> ' + esc(ans(c, x.orig)) + (p && !c.gross ? ' · ' + fmt(p.pts) + ' из ' + fmt(p.eff) : '') + '</p>' +
+        '<p><b>Оценка ИИ:</b> ' + esc(ans(c, x.orig)) + (p && !c.gross ? ' · ' + fmt(p.raw) + ' из ' + fmt(p.w) : '') + '</p>' +
         '<p>' + esc(x.r.v === 'na' ? x.r.na : x.r.why) + '</p>' + ev +
         '<label class="sr" for="cqa-ap-text">Комментарий</label><textarea id="cqa-ap-text" class="in" data-draft="' + esc(key) + '|comment" placeholder="Почему вы не согласны с оценкой?">' + esc(state.drafts[key + '|comment'] || '') + '</textarea>' +
         (state.errs[key] ? '<p class="err">' + esc(state.errs[key]) + '</p>' : '') +
