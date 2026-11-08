@@ -1,13 +1,17 @@
 (function () {
   'use strict';
 
+  /* CQA workbench in the "CQA — шаблон интерфейса" design (shell / side / vw / dl / cl / card).
+     Data comes through opts.request (public/cqa-api.js → versioned local server).
+     The server sends a CSP without inline styles, so every dynamic style is set through CSSOM in post(). */
+
   var SP = { client: 'Клиент', operator: 'Оператор', bot: 'Бот', system: 'Система' };
 
   /* ---------- утилиты ---------- */
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function mmss(s) { s = Math.max(0, Math.round(s)); return pad(Math.floor(s / 60)) + ':' + pad(s % 60); }
   function esc(s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
@@ -16,35 +20,33 @@
     var d = new Date(s);
     return isNaN(d.getTime()) ? String(s) : d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   }
-  /* подпись критерия: если она изменилась, старый результат считается устаревшим.
-     Должна совпадать с critSig в server.js */
+  /* исходная метка времени: ISO 8601 показываем как ЧЧ:ММ:СС, MM:SS — как есть */
+  function shortTs(ts) { var m = /^\d{4}-\d\d-\d\dT(\d\d:\d\d:\d\d)/.exec(ts || ''); return m ? m[1] : ts; }
+  /* подпись критерия: если она изменилась, старый результат считается устаревшим (совпадает с cqa-api.js) */
   function critSig(c) {
     return JSON.stringify([c.title, c.desc || '', c.type, (c.steps || []).join(','), !!c.naAllowed, !!c.gross]);
   }
   function maxOf(c) { return c.type === 'scale' && c.steps && c.steps.length ? Math.max.apply(null, c.steps) : 1; }
-  function parseSteps(str) {
-    var a = String(str).split(/[\s,;]+/).filter(Boolean).map(Number).filter(function (x) { return isFinite(x) && x >= 0; });
-    a = a.filter(function (x, i) { return a.indexOf(x) === i; }).sort(function (x, y) { return y - x; });
-    return a.length >= 2 ? a : null;
+
+  /* Описания ступеней шкалы живут в тексте правила («20: … 15: …»), который читает модель.
+     Редактор разбирает их в отдельные поля и собирает обратно только при правке. */
+  function splitSteps(desc, steps) {
+    var text = String(desc || ''), re = /(^|\s)(\d+(?:[.,]\d+)?):\s/g, hits = [], m;
+    while ((m = re.exec(text))) {
+      var v = Number(m[2].replace(',', '.'));
+      if (steps.indexOf(v) >= 0) hits.push({ v: v, at: m.index + m[1].length, body: re.lastIndex });
+    }
+    var labels = {};
+    hits.forEach(function (h, i) { labels[h.v] = text.slice(h.body, i + 1 < hits.length ? hits[i + 1].at : text.length).trim(); });
+    return { base: (hits.length ? text.slice(0, hits[0].at) : text).trim(), labels: labels };
   }
-  function runPool(items, limit, fn, onProgress) {
-    var idx = 0, active = 0, done = 0;
-    return new Promise(function (resolve) {
-      if (!items.length) return resolve();
-      function pump() {
-        while (active < limit && idx < items.length) {
-          (function (it) {
-            active++;
-            fn(it).then(function () {
-              active--; done++;
-              if (onProgress) onProgress(done, items.length);
-              if (done === items.length) resolve(); else pump();
-            });
-          })(items[idx++]);
-        }
-      }
-      pump();
-    });
+  function joinSteps(c) {
+    var parts = c.steps.filter(function (s) { return (c._labels[s] || '').trim(); }).map(function (s) { return s + ': ' + c._labels[s].trim(); });
+    return [c._base.trim()].concat(parts).filter(Boolean).join(' ');
+  }
+  function stepUI(c) {
+    if (c.type === 'scale' && !c._labels) { var p = splitSteps(c.desc, c.steps || []); c._base = p.base; c._labels = p.labels; }
+    return c;
   }
 
   /* диалог с сервера: raw = [секунды, роль, текст, исходная метка времени] */
@@ -59,7 +61,7 @@
     opts = opts || {};
     var base = opts.api || '';
     var state = {
-      role: 'analyst', view: 'dialogs', group: opts.group || '', did: null, filter: {query:'',language:'',gross:false},
+      role: 'analyst', view: 'dialogs', group: opts.group || '', did: null, filter: { query: '', language: '', gross: false },
       checklist: null, draft: null, dialogs: [], results: {}, appeals: {},
       drafts: {}, errs: {}, form: null, hl: null, focus: null,
       t: 0, playing: false, toast: '', loading: true, loadErr: '', busy: false
@@ -93,13 +95,15 @@
       return api('GET', '/api/bootstrap?group=' + encodeURIComponent(group || '')).then(function (data) {
         state.group = data.group; state.groups = data.groups || []; state.checklist = data.checklist; state.draft = null; state.jobs = data.jobs || [];
         state.dialogs = data.dialogs.map(prep); state.results = data.results || {}; state.appeals = data.appeals || {};
-        state.did = state.dialogs.some(function (d) {return d.id===opts.dialog;}) ? opts.dialog : state.dialogs.length ? state.dialogs[0].id : null;
+        var wanted = state.dialogs.some(function (d) { return d.id === opts.dialog; });
+        state.did = wanted ? opts.dialog : state.dialogs.length ? state.dialogs[0].id : null;
+        if (wanted) state.view = 'analysis';
         state.t = 0; state.hl = null; state.form = null; state.loading = false;
         setAudio(dlg(state.did)); render();
       }).catch(function (e) { state.loading = false; state.loadErr = e.message; render(); });
     }
     function evalDialog(d, ids) {
-      return api('POST', '/api/evaluate', { group: state.group, dialogId: d.id, criteria: ids, hashes: Object.fromEntries([[d.id,d.hash]]) }).then(function (res) {
+      return api('POST', '/api/evaluate', { group: state.group, dialogId: d.id, criteria: ids, hashes: Object.fromEntries([[d.id, d.hash]]) }).then(function (res) {
         if (res.rubricId && res.rubricId !== state.checklist.id) return res;
         state.results[d.id] = res.results;
         if (res.dialog) {
@@ -125,21 +129,35 @@
       state.t = t;
       if (audio) { try { audio.currentTime = t; } catch (e) { /* ещё не загружено */ } }
     }
+    function play(on) {
+      var cur = dlg(state.did);
+      if (!cur || !audio) return;
+      if (!on) { state.playing = false; audio.pause(); updatePlayer(); return; }
+      if (state.t >= cur.duration - 0.3) seekTo(0);
+      state.playing = true;
+      audio.currentTime = state.t;
+      audio.play().catch(function () {
+        state.playing = false;
+        toast('Не удалось воспроизвести запись. Проверьте доступность аудиофайла.');
+        updatePlayer();
+      });
+      updatePlayer();
+    }
 
     /* --- расчёт --- */
     function rnd(n) { if (n == null) return null; var p = Math.pow(10, state.checklist.rounding); return Math.round(n * p) / p; }
-    function fmt(n) { return n == null ? '—' : rnd(n).toFixed(state.checklist.rounding).replace('.', ','); }
-    function tone(n) { return n == null ? 'warn' : n >= 80 ? 'good' : n >= 60 ? 'warn' : 'bad'; }
+    function fmt(n) { return n == null ? '—' : String(rnd(n)).replace('.', ','); }
     function ans(c, v) {
       if (v === 'na') return 'N/A';
       if (c.gross) return v ? 'Выявлено' : 'Не выявлено';
       return c.type === 'binary' ? (v ? 'Да' : 'Нет') : (v + ' из ' + maxOf(c));
     }
-    function ctone(c, v) {
-      if (v === 'na') return 'na';
-      if (c.gross) return v ? 'bad' : 'good';
+    /* значок критерия в стиле макета: ✓ полный балл, ✕ ноль или нарушение, – N/A, ◐ частично */
+    function mark(c, v) {
+      if (v === 'na') return ['na', '–'];
+      if (c.gross) return v ? ['no', '!'] : ['', '✓'];
       var n = c.type === 'binary' ? v : v / maxOf(c);
-      return n >= 0.8 ? 'good' : n >= 0.5 ? 'warn' : 'bad';
+      return n >= 1 ? ['', '✓'] : n <= 0 ? ['no', '✕'] : ['part', '◐'];
     }
 
     function rowsFor(d) {
@@ -154,7 +172,7 @@
         return { c: c, r: ok ? r : null, orig: ok ? r.v : null, fin: fin, ap: ap, pending: !ok };
       });
     }
-    /* критерии с N/A выпадают, их вес делится между остальными, критерий «грубая ошибка» в баллы не входит */
+    /* критерии с N/A выпадают, их вес делится между остальными, «грубая ошибка» в баллы не входит */
     function score(rows, useFin) {
       var live = rows.filter(function (x) { return !x.pending && !x.c.gross && (useFin ? x.fin : x.orig) !== 'na'; });
       var sum = live.reduce(function (a, x) { return a + x.c.weight; }, 0);
@@ -173,330 +191,350 @@
       if (sum <= 0) out.total = null;
       return out;
     }
-    function openCount() {
-      return Object.keys(state.appeals).filter(function (k) { return !state.appeals[k].dec; }).length;
-    }
-    function openFor(id) {
-      return Object.keys(state.appeals).filter(function (k) { return k.indexOf(id + '|') === 0 && !state.appeals[k].dec; }).length;
-    }
+    function openCount() { return Object.keys(state.appeals).filter(function (k) { return !state.appeals[k].dec; }).length; }
+    function openFor(id) { return Object.keys(state.appeals).filter(function (k) { return k.indexOf(id + '|') === 0 && !state.appeals[k].dec; }).length; }
+    function shownDialogs() { return opts.filterDialogs ? opts.filterDialogs(state.dialogs, state.filter) : state.dialogs; }
 
-    /* --- шаблоны --- */
-    function navHTML() {
+    /* ================================================================ шаблоны */
+    function sideHTML() {
       var n = openCount();
-      function it(v, label, badge) {
-        return '<button class="cqa-nav-item' + (state.view === v ? ' is-active' : '') + '" data-act="view" data-v="' + v + '">' +
-          label + (badge ? '<span class="cqa-badge">' + badge + '</span>' : '') + '</button>';
+      function it(v, label, badge, off) {
+        return '<button class="side-i' + (state.view === v ? ' on' : '') + '" data-act="view" data-v="' + v + '"' + (off ? ' disabled' : '') +
+          (state.view === v ? ' aria-current="page"' : '') + '>' + label + (badge ? '<span class="side-n">' + badge + '</span>' : '') + '</button>';
       }
       function rb(r, label) {
-        return '<button data-act="role" data-r="' + r + '" class="' + (state.role === r ? 'is-on' : '') + '" aria-pressed="' + String(state.role === r) + '">' + label + '</button>';
+        return '<button data-act="role" data-r="' + r + '" class="' + (state.role === r ? 'on' : '') + '" aria-pressed="' + String(state.role === r) + '">' + label + '</button>';
       }
-      return '<nav class="cqa-nav" aria-label="Разделы CQA"><div class="cqa-brand">CQA</div>' +
-        it('dialogs', 'Диалоги') + it('checklist', 'Чек-листы') + it('appeals', 'Апелляции', n || '') +
-        '<a class="cqa-nav-item" href="/audio">Загрузить аудио ↗</a>' +
-        '<a class="cqa-nav-item" href="/classic">Модель, импорт и история ↗</a><a class="cqa-nav-item" href="/api/export" download>Экспорт JSON ↓</a>' +
-        '<div class="cqa-group"><label class="cqa-role-l" for="cqa-group">Набор данных</label>' +
-        '<input id="cqa-group" class="cqa-in" type="text" list="cqa-groups" value="' + esc(state.group) + '" placeholder="group_id"><datalist id="cqa-groups">' + (state.groups || []).map(function (group) { return '<option value="' + esc(group) + '"></option>'; }).join('') + '</datalist>' +
-        '<button class="cqa-btn" data-act="load-group">Загрузить</button></div>' +
-        '<div class="cqa-role"><span class="cqa-role-l">Роль</span><div class="cqa-seg" role="group" aria-label="Роль в демонстрации">' +
-        rb('analyst', 'Аналитик') + rb('reviewer', 'Проверяющий') + '</div></div></nav>';
+      return '<nav class="side" aria-label="Разделы CQA"><h1>CQA</h1>' +
+        it('dialogs', 'Диалоги') + it('checklist', 'Чек-листы') + it('appeals', 'Апелляции', n || '') + it('analysis', 'Анализ', '', !state.did) +
+        '<div class="side-b">' +
+        '<label class="side-l" for="cqa-group">Набор данных</label>' +
+        '<div class="side-g"><input id="cqa-group" class="in" type="text" list="cqa-groups" value="' + esc(state.group) + '" placeholder="group_id"><datalist id="cqa-groups">' +
+        (state.groups || []).map(function (g) { return '<option value="' + esc(g) + '"></option>'; }).join('') + '</datalist>' +
+        '<button class="btn line" data-act="load-group">Загрузить</button></div>' +
+        '<span class="side-l">Роль</span><div class="seg" role="group" aria-label="Роль">' + rb('analyst', 'Аналитик') + rb('reviewer', 'Проверяющий') + '</div>' +
+        '<a class="side-a" href="/audio">Загрузить аудио ↗</a><a class="side-a" href="/classic">Модель, импорт и история ↗</a><a class="side-a" href="/api/export" download>Экспорт JSON ↓</a>' +
+        '</div></nav>';
     }
 
-    function listHTML() {
-      var shown = opts.filterDialogs ? opts.filterDialogs(state.dialogs,state.filter) : state.dialogs;
-      return '<div class="cqa-filters"><input id="cqa-search" class="cqa-in" data-filter="query" type="search" placeholder="Найти диалог или реплику" aria-label="Поиск диалогов" value="' + esc(state.filter.query) + '"><select class="cqa-in" data-filter="language" aria-label="Язык">' + [['','Все языки'],['RU','Русский'],['KZ','Қазақша'],['EN','English']].map(function (p) {return '<option value="' + p[0] + '"' + (state.filter.language===p[0]?' selected':'') + '>' + p[1] + '</option>';}).join('') + '</select><label><input type="checkbox" data-filter="gross"' + (state.filter.gross?' checked':'') + '> Грубые ошибки AI</label><span>Показано ' + shown.length + ' из ' + state.dialogs.length + '</span></div>' +
-        (!shown.length ? '<p class="cqa-empty">По выбранным фильтрам диалоги не найдены. Неоценённые диалоги не считаются проверенными.</p>' : '') +
-        '<ul class="cqa-list">' + shown.map(function (d) {
-        var rows = rowsFor(d), sc = score(rows, true);
-        var nA = openFor(d.id);
-        var gross = rows.some(function (x) { return !x.pending && x.c.gross && x.fin === 1; });
-        var pend = rows.filter(function (x) { return x.pending; }).length;
-        return '<li><button class="cqa-item' + (d.id === state.did ? ' is-active' : '') + '" data-act="open" data-id="' + esc(d.id) + '">' +
-          '<span class="cqa-item-top"><span class="cqa-item-id">' + esc(d.id) + '</span><span class="cqa-score-s ' + tone(sc.total) + '">' + (pend === rows.length ? '—' : fmt(sc.total)) + '</span></span>' +
-          '<span class="cqa-item-meta">' + (d.voice ? 'Звонок' : 'Чат') + ' · ' + esc(d.lang) + (d.operator ? ' · ' + esc(d.operator) : '') + '</span>' +
-          '<span class="cqa-tags">' +
-          (gross ? '<span class="cqa-tag cqa-tag--bad">Грубая ошибка</span>' : '') +
-          (d.grossAI && !gross ? '<span class="cqa-tag cqa-tag--warn">AI выявил · пересмотрено</span>' : '') +
-          (nA ? '<span class="cqa-tag cqa-tag--warn">Апелляция</span>' : '') +
-          (pend ? '<span class="cqa-tag">Не оценено: ' + pend + '</span>' : '') +
-          '</span></button></li>';
-      }).join('') + '</ul>';
+    function head(title, sub, tools) {
+      return '<header class="head"><div><h2>' + title + '</h2><p>' + sub + '</p></div>' + (tools ? '<div class="tools">' + tools + '</div>' : '') + '</header>';
     }
 
-    /* Схема активности по текстовым репликам; не аудиограмма. */
-    function wave(d) {
-      var N = 150, step = d.duration / N, out = '', seed = 7;
+    /* ---------- Диалоги ---------- */
+    function dialogsView() {
+      var pendingDialogs = state.dialogs.filter(function (d) { return rowsFor(d).some(function (x) { return x.pending; }); }).length;
+      var h = head('Диалоги', 'Выберите диалог и откройте его анализ · набор ' + esc(state.group || '—'),
+        state.dialogs.length ? '<button class="btn" data-act="ck-apply"' + (pendingDialogs ? '' : ' disabled') + '>' + (pendingDialogs ? 'Оценить неоценённые · ' + pendingDialogs : 'Все диалоги оценены') + '</button>' : '');
+      if (!state.dialogs.length) {
+        return h + '<div class="dash"><p>В наборе нет диалогов.</p><p>Загрузите группу организатора (поле «Набор данных» слева), JSON с диалогами или аудиозапись. В разделе «Модель, импорт и история» проверьте подключение к локальной модели.</p>' +
+          '<p class="tools tools-c"><a class="btn" href="/classic">Импортировать JSON и настроить модель</a> <a class="btn line" href="/audio">Загрузить аудио</a></p></div>';
+      }
+      var shown = shownDialogs();
+      h += '<div class="tools filters"><input id="cqa-search" class="in s" data-filter="query" type="search" placeholder="Найти диалог или реплику" aria-label="Поиск диалогов" value="' + esc(state.filter.query) + '">' +
+        '<select class="in" data-filter="language" aria-label="Язык">' + [['', 'Все языки'], ['RU', 'Русский'], ['KZ', 'Қазақша'], ['EN', 'English']].map(function (p) {
+          return '<option value="' + p[0] + '"' + (state.filter.language === p[0] ? ' selected' : '') + '>' + p[1] + '</option>';
+        }).join('') + '</select>' +
+        '<label class="chk"><input type="checkbox" data-filter="gross"' + (state.filter.gross ? ' checked' : '') + '> Грубые ошибки AI</label>' +
+        '<span class="cnt">Показано ' + shown.length + ' из ' + state.dialogs.length + '</span></div>';
+      if (!shown.length) return h + '<div class="dash">По выбранным фильтрам диалоги не найдены. Неоценённые диалоги не считаются проверенными.</div>';
+      return h + '<div id="dlist">' + shown.map(function (d) {
+        var rows = rowsFor(d), sc = score(rows, true), pend = rows.filter(function (x) { return x.pending; }).length;
+        var gross = rows.some(function (x) { return !x.pending && x.c.gross && x.fin === 1; }), nA = openFor(d.id);
+        var job = (state.jobs || []).some(function (j) { return j.conversationIds && j.conversationIds.indexOf(d.id) >= 0; });
+        var meta = (d.voice ? 'Звонок' : 'Чат') + ' · ' + esc(d.lang) + (Number.isFinite(d.duration) ? ' · ' + mmss(d.duration) : '') + ' · ' + d.msgs.length + ' реплик';
+        return '<div class="dl' + (d.id === state.did ? ' cur' : '') + '"><b>' + esc(d.id) + '<br><small>' + meta + '</small></b>' +
+          (gross ? '<span class="tag bad">Грубая ошибка</span>' : '') +
+          (d.grossAI && !gross ? '<span class="tag warn">AI выявил · пересмотрено</span>' : '') +
+          (nA ? '<span class="tag warn">Апелляция</span>' : '') +
+          (job ? '<span class="tag">В очереди</span>' : '') +
+          (pend === rows.length ? '<span class="tag">Не оценено</span>' : '<span class="tag ok">Оценка ' + fmt(pend ? null : sc.total) + '</span>') +
+          (pend && pend < rows.length ? '<span class="tag">Без оценки: ' + pend + '</span>' : '') +
+          '<button class="btn" data-act="open" data-id="' + esc(d.id) + '">Анализ</button></div>';
+      }).join('') + '</div>';
+    }
+
+    /* ---------- Анализ диалога ---------- */
+    /* Дорожка: схема активности по репликам, а не аудиограмма (столбики выше там, где кто-то говорит). */
+    var BARS = 72;
+    function bars(d) {
+      var seed = 7, out = [];
       function r() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
-      ['client', 'operator'].forEach(function (sp, lane) {
-        var y0 = lane ? 42 : 0, cls = lane ? 'cqa-bar cqa-bar--op' : 'cqa-bar';
-        for (var i = 0; i < N; i++) {
-          var t = i * step, on = false;
-          for (var k = 0; k < d.msgs.length; k++) {
-            var m = d.msgs[k];
-            if (m.sp === sp) {
-              var next = d.msgs[k + 1] ? d.msgs[k + 1].t : d.duration;
-              var end = Math.min(next - 1, m.t + Math.max(4, m.tx.length * 0.09));
-              if (t >= m.t && t < end) { on = true; break; }
-            }
-          }
-          var h = on ? 6 + r() * 24 : 2;
-          out += '<rect class="' + cls + '" x="' + (i * 4) + '" y="' + (y0 + 17 - h / 2).toFixed(1) + '" width="2.4" height="' + h.toFixed(1) + '"/>';
+      for (var i = 0; i < BARS; i++) {
+        var t = (i + 0.5) * d.duration / BARS, on = false;
+        for (var k = 0; k < d.msgs.length; k++) {
+          var m = d.msgs[k], next = d.msgs[k + 1] ? d.msgs[k + 1].t : d.duration;
+          if (t >= m.t && t < Math.min(next, m.t + Math.max(3, m.tx.length * 0.09))) { on = true; break; }
         }
-      });
-      return out;
+        out.push(on ? 22 + Math.round(r() * 74) : 8 + Math.round(r() * 8));
+      }
+      var row = out.map(function (h) { return '<i data-h="' + h + '"></i>'; }).join('');
+      return '<div class="l">' + row + '</div><div class="l f" id="cqa-fill">' + row + '</div>';
+    }
+    function evidenceMsgs(d) {
+      var seen = {};
+      rowsFor(d).forEach(function (x) { (x.r && x.r.evidence || []).forEach(function (i) { seen[i] = true; }); });
+      return Object.keys(seen).map(Number).sort(function (a, b) { return a - b; });
     }
     function playerHTML(d) {
-      if (!d.seekable) return '<section class="cqa-card"><h3>Запись звонка</h3>' + (d.audio ? '<audio controls preload="none" src="' + esc(d.audio) + '"></audio>' : '<p>Аудиозапись не приложена.</p>') + '<p class="cqa-note">Календарные метки сохранены в транскрипте. Привязка реплик к позиции записи отсутствует.</p></section>';
-      return '<section class="cqa-card" aria-label="Запись звонка"><p class="cqa-note">Схема реплик по транскрипту, не аудиограмма.</p><div class="cqa-wave-wrap"><div class="cqa-wave-labels"><span>Клиент</span><span>Оператор</span></div>' +
-        '<div class="cqa-wave-box"><svg class="cqa-wave" viewBox="0 0 600 76" preserveAspectRatio="none" aria-hidden="true">' + wave(d) + '</svg>' +
-        '<div class="cqa-region" id="cqa-region" hidden></div><div class="cqa-playhead" id="cqa-playhead"></div></div></div>' +
-        '<div class="cqa-ctl"><button class="cqa-play" id="cqa-play" data-act="play"' + (d.audio ? '' : ' disabled') + ' aria-label="Воспроизвести">&#9654;</button>' +
-        '<span class="cqa-time" id="cqa-time">00:00 / ' + mmss(d.duration) + '</span>' +
-        '<input id="cqa-seek" class="cqa-seek" type="range" min="0" max="' + d.duration + '" step="1" value="0" data-seek="1" aria-label="Позиция записи"></div>' +
-        (d.audio ? '' : '<p class="cqa-note">Аудиозапись не приложена. Доступен транскрипт.</p>') + '</section>';
-    }
-
-    function transcriptHTML(d) {
-      return '<section class="cqa-card"><h3>Расшифровка</h3><ol class="cqa-tr" id="cqa-tr">' + d.msgs.map(function (m, i) {
-        return '<li class="cqa-msg cqa-msg--' + m.sp + '" data-i="' + i + '">' +
-          '<button class="cqa-msg-t" data-act="goto" data-d="' + esc(d.id) + '" data-m="' + i + '" title="' + esc(m.ts) + '">' + esc(m.ts) + '</button>' +
-          '<div><span class="cqa-msg-sp">' + SP[m.sp] + '</span><p>' + esc(m.tx) + '</p></div></li>';
-      }).join('') + '</ol></section>';
-    }
-
-    function ring(total) {
-      var C = 2 * Math.PI * 34, p = total == null ? 0 : Math.max(0, Math.min(100, total)) / 100;
-      return '<svg class="cqa-ring" viewBox="0 0 88 88" role="img" aria-label="Итог ' + fmt(total) + ' из 100">' +
-        '<circle class="cqa-ring-bg" cx="44" cy="44" r="34"/>' +
-        '<circle class="cqa-ring-fg ' + tone(total) + '" cx="44" cy="44" r="34" stroke-dasharray="' + (C * p).toFixed(1) + ' ' + C.toFixed(1) + '" transform="rotate(-90 44 44)"/>' +
-        '<text class="cqa-ring-n" x="44" y="47" text-anchor="middle">' + fmt(total) + '</text>' +
-        '<text class="cqa-ring-s" x="44" y="61" text-anchor="middle">из 100</text></svg>';
-    }
-
-    function evHTML(d, r) {
-      if (r.evidence || r.range) {
-        var proof = (r.evidence || []).map(function (i) { return evHTML(d, {ev:{m:i}}); }).join('');
-        if (r.range && r.range[0] >= 0 && r.range[1] >= 0) proof += '<button class="cqa-ev" data-act="indices" data-d="' + esc(d.id) + '" data-a="' + r.range[0] + '" data-b="' + r.range[1] + '">Проверенный диапазон: реплики ' + (r.range[0]+1) + '–' + (r.range[1]+1) + '</button>';
-        return proof;
+      if (!d.seekable) {
+        return '<div id="player">' + (d.audio ? '<audio class="native" controls preload="none" src="' + esc(d.audio) + '"></audio>' : '<p class="hint">Аудиозапись не приложена. Доступен транскрипт.</p>') +
+          '<p class="hint">Метки времени в транскрипте календарные, поэтому реплики не привязаны к позиции в записи.</p></div>';
       }
-      if (!r.ev) return '';
-      if (r.ev.m != null) {
-        var m = d.msgs[r.ev.m];
-        if (!m) return '';
-        return '<button class="cqa-ev" data-act="goto" data-d="' + esc(d.id) + '" data-m="' + r.ev.m + '">' +
-          '<span class="cqa-ev-t">' + esc(m.ts) + '</span><span class="cqa-ev-q"><b>' + SP[m.sp] + ':</b> «' + esc(m.tx) + '»</span></button>';
-      }
-      return '<button class="cqa-ev" data-act="range" data-d="' + esc(d.id) + '" data-a="' + r.ev.r[0] + '" data-b="' + r.ev.r[1] + '">' +
-        '<span class="cqa-ev-t">' + mmss(r.ev.r[0]) + '–' + mmss(r.ev.r[1]) + '</span><span class="cqa-ev-q">Участок разговора, на котором основан вывод.</span></button>';
+      var pins = evidenceMsgs(d).map(function (i) {
+        var m = d.msgs[i];
+        return '<button class="pin" type="button" data-act="goto" data-play="1" data-d="' + esc(d.id) + '" data-m="' + i + '" data-left="' + (m.t / d.duration * 100).toFixed(2) + '" aria-label="Реплика ' + esc(shortTs(m.ts)) + '" title="' + esc(SP[m.sp] + ' ' + shortTs(m.ts)) + '"></button>';
+      }).join('');
+      return '<div id="player"><div class="pl"><button class="btn pp" type="button" id="cqa-play" data-act="play"' + (d.audio ? '' : ' disabled') + ' aria-label="Воспроизвести">▶</button>' +
+        '<div class="wv" id="cqa-wave" data-act="wave" title="Перейти к месту записи">' + bars(d) + '<div class="reg" id="cqa-region" hidden></div>' + pins + '</div>' +
+        '<span id="ptime">00:00 / ' + mmss(d.duration) + '</span></div>' +
+        '<p class="hint">' + (d.audio ? 'Метки на дорожке — реплики из обоснования оценки. Нажатие на метку или время реплики переводит запись на это место.' : 'Аудиозапись не приложена: дорожка показывает, где в разговоре звучат реплики.') + '</p></div>';
+    }
+    function chatHTML(d) {
+      return '<div class="chat' + (d.voice ? ' call' : '') + '" id="cqa-tr">' + d.msgs.map(function (m, i) {
+        return '<div class="m ' + esc(m.sp) + '" data-i="' + i + '"><time><button class="tbtn" data-act="goto" data-d="' + esc(d.id) + '" data-m="' + i + '"' +
+          (d.voice && d.seekable ? ' data-play="1"' : '') + ' title="' + esc(m.ts) + '">' + esc(shortTs(m.ts)) + '</button></time>' +
+          '<div><b>' + (SP[m.sp] || esc(m.sp)) + (m.sp === 'bot' || m.sp === 'system' ? ' <span class="ctx">контекст</span>' : '') + '</b><p>' + esc(m.tx) + '</p></div></div>';
+      }).join('') + '</div>';
     }
 
-    function selectOptions(c, cur) {
-      var o = [];
-      if (c.gross) { o.push(['1', 'Выявлено']); o.push(['0', 'Не выявлено']); }
-      else if (c.type === 'binary') { o.push(['1', 'Да']); o.push(['0', 'Нет']); }
-      else { c.steps.forEach(function (s) { o.push([String(s), s + ' из ' + maxOf(c)]); }); }
-      if (c.naAllowed) o.push(['na', 'N/A']);
-      return o.map(function (p) { return '<option value="' + p[0] + '"' + (String(cur) === p[0] ? ' selected' : '') + '>' + p[1] + '</option>'; }).join('');
+    function evChips(d, x) {
+      var r = x.r, out = '';
+      (r.evidence || []).forEach(function (i) {
+        var m = d.msgs[i]; if (!m) return;
+        var listen = d.voice && d.seekable && d.audio;
+        out += '<button class="chip" type="button" data-act="goto" data-d="' + esc(d.id) + '" data-m="' + i + '"' + (listen ? ' data-play="1"' : '') +
+          ' title="' + esc(SP[m.sp] + ': ' + m.tx) + '">' + (listen ? '▶ Прослушать ' : '↗ ') + esc(shortTs(m.ts)) + ' · ' + esc(SP[m.sp] || m.sp) + '</button>';
+      });
+      if (r.range && r.range[0] >= 0 && r.range[1] >= 0) {
+        out += '<button class="chip" type="button" data-act="indices" data-d="' + esc(d.id) + '" data-a="' + r.range[0] + '" data-b="' + r.range[1] + '">Проверенный участок: реплики ' + (r.range[0] + 1) + '–' + (r.range[1] + 1) + '</button>';
+      }
+      if (state.role === 'analyst' && !x.ap) out += '<button class="chip" type="button" data-act="appeal-open" data-d="' + esc(d.id) + '" data-c="' + esc(x.c.id) + '">Оспорить</button>';
+      if (x.ap) out += '<button class="chip" type="button" data-act="to-foot">' + (x.ap.dec ? (x.ap.dec.kind === 'changed' ? 'Изменено проверяющим' : 'Подтверждено проверяющим') : 'Апелляция ждёт решения') + '</button>';
+      return out ? '<div class="ev">' + out + '</div>' : '';
     }
-
-    function appealBlock(d, x) {
-      var c = x.c, key = d.id + '|' + c.id, fid = esc('cqa-f-' + d.id + '-' + c.id), html = '';
-      var ap = x.ap;
-      if (ap) {
-        html += '<div class="cqa-ap ' + (ap.dec ? 'cqa-ap--done' : 'cqa-ap--open') + '"><div><b>Апелляция</b> · ' + esc(fmtAt(ap.at)) + '</div><div>' + esc(ap.comment) + '</div>';
-        if (ap.dec) {
-          html += '<div><b>' + (ap.dec.kind === 'changed' ? 'Оценка изменена' : 'Оценка подтверждена') + '</b> · ' + esc(fmtAt(ap.dec.at)) + ': ' + esc(ans(c, x.orig)) + ' → ' + esc(ans(c, ap.dec.v)) + '</div><div>Причина: ' + esc(ap.dec.reason) + '</div>';
-        } else {
-          html += '<div>Ждёт решения проверяющего.</div>';
-        }
-        html += '</div>';
-      }
-      if (state.role === 'analyst' && !ap) {
-        if (state.form === key) {
-          html += '<div class="cqa-form"><label for="' + fid + '">Комментарий к апелляции</label>' +
-            '<textarea id="' + fid + '" data-draft="' + esc(key) + '|comment" rows="3">' + esc(state.drafts[key + '|comment'] || '') + '</textarea>' +
-            (state.errs[key] ? '<div class="cqa-err">' + esc(state.errs[key]) + '</div>' : '') +
-            '<div class="cqa-row"><button class="cqa-btn cqa-btn--primary" data-act="appeal-send" data-d="' + esc(d.id) + '" data-c="' + c.id + '">Отправить</button>' +
-            '<button class="cqa-btn" data-act="appeal-cancel">Отмена</button></div></div>';
-        } else {
-          html += '<div class="cqa-row"><button class="cqa-btn" data-act="appeal-open" data-d="' + esc(d.id) + '" data-c="' + c.id + '">Оспорить оценку</button></div>';
-        }
-      }
-      if (state.role === 'reviewer' && ap && !ap.dec) {
-        var cur = state.drafts[key + '|v'] != null ? state.drafts[key + '|v'] : x.orig;
-        html += '<div class="cqa-form"><label for="' + fid + '-v">Оценка по критерию</label>' +
-          '<select id="' + fid + '-v" data-draft="' + esc(key) + '|v">' + selectOptions(c, cur) + '</select>' +
-          '<label for="' + fid + '-r">Причина решения</label>' +
-          '<textarea id="' + fid + '-r" data-draft="' + esc(key) + '|reason" rows="3">' + esc(state.drafts[key + '|reason'] || '') + '</textarea>' +
-          (state.errs[key] ? '<div class="cqa-err">' + esc(state.errs[key]) + '</div>' : '') +
-          '<div class="cqa-row"><button class="cqa-btn cqa-btn--primary" data-act="decide-change" data-d="' + esc(d.id) + '" data-c="' + c.id + '">Изменить на выбранную</button>' +
-          '<button class="cqa-btn" data-act="decide-keep" data-d="' + esc(d.id) + '" data-c="' + c.id + '">Подтвердить оценку модели</button></div></div>';
-      }
-      return html;
-    }
-
     function critHTML(d, x, sc) {
       var c = x.c, p = sc.byRow[c.id], r = x.r;
-      var h = '<article class="cqa-crit' + (state.focus === d.id + '|' + c.id ? ' is-focus' : '') + '" data-crit="' + c.id + '">' +
-        '<div class="cqa-crit-head"><h4>' + esc(c.title) + '</h4><span class="cqa-w">' + (c.gross ? 'без баллов' : 'вес ' + c.weight) + '</span></div>';
       if (x.pending) {
-        h += '<div class="cqa-pending">Для текущей версии чек-листа ещё нет оценки. ' +
-          '<button class="cqa-btn" data-act="eval" data-d="' + esc(d.id) + '" data-c="' + c.id + '">Оценить</button></div></article>';
-        return h;
+        return '<div class="cr" data-crit="' + esc(c.id) + '"><div class="cr-t"><i class="na">?</i><span>' + esc(c.title) + '</span><em>нет оценки</em></div>' +
+          '<p>Для текущей версии чек-листа оценки ещё нет.</p></div>';
       }
-      var changed = x.fin !== x.orig;
-      h += '<div class="cqa-crit-line"><span class="cqa-chip cqa-chip--' + ctone(c, x.fin) + '">' + ans(c, x.fin) + '</span>' +
-        (changed ? '<span class="cqa-was">было: ' + ans(c, x.orig) + '</span>' : '') +
-        (c.gross && x.fin === 1 ? '<span class="cqa-tag cqa-tag--bad">Грубая ошибка</span>' : '') +
-        (r.stub ? '<span class="cqa-tag">заглушка</span>' : '') +
-        '<span class="cqa-pts">' + (c.gross ? 'отмечается отдельно' : p ? fmt(p.pts) + ' из ' + fmt(p.eff) : 'не учитывается в итоге') + '</span></div>';
-      if (r.v === 'na') h += '<p class="cqa-why cqa-why--na"><b>Почему N/A.</b> ' + esc(r.na || '') + '</p>';
-      else h += '<p class="cqa-why">' + esc(r.why) + '</p>';
-      h += evHTML(d, r) + appealBlock(d, x) + '</article>';
-      return h;
+      var mk = mark(c, x.fin), changed = x.fin !== x.orig;
+      var pts = c.gross ? (x.fin ? 'нарушение' : 'нет') : x.fin === 'na' ? 'N/A' : p ? fmt(p.pts) + ' / ' + fmt(p.eff) : '—';
+      return '<div class="cr' + (state.focus === d.id + '|' + c.id ? ' focus' : '') + (c.gross ? ' gross' : '') + '" data-crit="' + esc(c.id) + '">' +
+        '<div class="cr-t"><i class="' + mk[0] + '">' + mk[1] + '</i><span>' + esc(c.title) + '</span><em>' + pts + '</em></div>' +
+        '<p class="ans">Ответ: <b>' + esc(ans(c, x.fin)) + '</b>' + (changed ? ' · <s>было: ' + esc(ans(c, x.orig)) + '</s>' : '') +
+        (c.gross ? ' · без баллов, отмечается отдельно' : ' · вес ' + c.weight) + '</p>' +
+        (r.v === 'na' ? '<p><b>Почему N/A.</b> ' + esc(r.na || '') + (c.naRule ? ' <span class="rule">Условие: ' + esc(c.naRule) + '</span>' : '') + '</p>' : '<p>' + esc(r.why) + '</p>') +
+        evChips(d, x) + '</div>';
     }
-
-    function resultHTML(d) {
+    function scoreHTML(d) {
       var rows = rowsFor(d), fin = score(rows, true), org = score(rows, false);
-      var diff = rnd(fin.total) !== rnd(org.total);
-      if (rows.some(function (x) { return x.pending; })) fin.total = org.total = null;
-      var h = '<section class="cqa-card"><h3>Оценка качества</h3><div class="cqa-sum">' + ring(fin.total) + '<div class="cqa-sum-txt">' +
-        '<b>Итог: ' + fmt(fin.total) + ' из 100</b>' +
-        (diff ? '<span>Исходная оценка модели: ' + fmt(org.total) + '. Итог пересчитан с учётом решений проверяющего.</span>' : rows.some(function (x) { return x.pending; }) ? '<span>Для этой версии чек-листа нужна новая проверка.</span>' : '<span>Первоначальные ответы модели сохранены.</span>') +
-        '<span>Чек-лист: версия ' + state.checklist.version + ', округление до ' + state.checklist.rounding + ' зн. Вес критериев с N/A перераспределён между остальными.</span></div></div>';
+      var pend = rows.some(function (x) { return x.pending; });
+      if (pend) fin.total = org.total = null;
+      var diff = rnd(fin.total) !== rnd(org.total), gross = rows.some(function (x) { return !x.pending && x.c.gross && x.fin === 1; });
+      var naN = rows.filter(function (x) { return !x.pending && x.fin === 'na'; }).length;
+      var h = '<h3>Оценка качества</h3><div class="score"><div class="ring" data-p="' + (fin.total == null ? 0 : Math.max(0, Math.min(100, rnd(fin.total)))) + '">' +
+        '<div><span><b>' + fmt(fin.total) + '</b><br><small>/ 100</small></span></div></div>' +
+        '<p class="sum">' + (pend ? 'Для этой версии чек-листа нужна оценка. ' : '') +
+        (diff ? 'Исходная оценка модели: <b>' + fmt(org.total) + '</b>. Итог пересчитан с учётом решений проверяющего. ' : !pend ? 'Первоначальные ответы модели сохранены. ' : '') +
+        (naN ? 'Критерии с N/A (' + naN + ') не входят в итог: их вес перераспределён между остальными. ' : '') +
+        'Чек-лист v' + state.checklist.version + ', округление до ' + state.checklist.rounding + ' зн.</p></div>' +
+        (gross ? '<p class="flag">⚑ Грубая ошибка зафиксирована. Флаг учитывается отдельно от балла.</p>' : '');
       state.checklist.sections.forEach(function (s) {
         var sr = rows.filter(function (x) { return x.c.section === s.id; });
         if (!sr.length) return;
         var t = fin.bySec[s.id];
-        h += '<div class="cqa-sec"><div class="cqa-sec-h"><h4>' + esc(s.title) + '</h4><span>' + (t ? fmt(t.pts) + ' / ' + fmt(t.eff) : '—') + '</span></div>' +
-          sr.map(function (x) { return critHTML(d, x, fin); }).join('') + '</div>';
+        h += '<h4 class="grp sec">' + esc(s.title) + '<span>' + (t ? fmt(t.pts) + ' / ' + fmt(t.eff) : '—') + '</span></h4>' +
+          sr.map(function (x) { return critHTML(d, x, fin); }).join('');
       });
-      return h + '</section>';
+      return h;
     }
-
-    function detailHTML(d) {
+    function selectOptions(c, cur) {
+      var o = [];
+      if (c.gross) { o.push(['1', 'Выявлено']); o.push(['0', 'Не выявлено']); }
+      else if (c.type === 'binary') { o.push(['1', 'Да']); o.push(['0', 'Нет']); }
+      else c.steps.forEach(function (s) { o.push([String(s), s + ' из ' + maxOf(c)]); });
+      if (c.naAllowed) o.push(['na', 'N/A']);
+      return o.map(function (p) { return '<option value="' + p[0] + '"' + (String(cur) === p[0] ? ' selected' : '') + '>' + p[1] + '</option>'; }).join('');
+    }
+    function footHTML(d) {
+      var rows = rowsFor(d).filter(function (x) { return x.ap; });
+      var h = '<h3>Апелляция и решение проверяющего</h3>';
+      if (!rows.length) return h + '<div class="dash">Апелляций по этому диалогу нет. Оспорить оценку можно у любого критерия.</div>';
+      return h + '<div class="ap">' + rows.map(function (x) {
+        var c = x.c, ap = x.ap, key = d.id + '|' + c.id, fid = esc('cqa-f-' + d.id + '-' + c.id);
+        var row = '<div class="row" data-crit-ap="' + esc(c.id) + '"><b>' + esc(c.title) + '</b><span class="cm">«' + esc(ap.comment) + '»<small>' + esc(fmtAt(ap.at)) + ' · ответ модели: ' + esc(ans(c, x.orig)) + '</small></span>';
+        if (ap.dec) {
+          return row + '<span class="tag ok">' + (ap.dec.kind === 'changed' ? 'Изменено: ' + esc(ans(c, x.orig)) + ' → ' + esc(ans(c, ap.dec.v)) : 'Оценка подтверждена') + '</span>' +
+            '<span class="why">Причина: ' + esc(ap.dec.reason) + ' · ' + esc(fmtAt(ap.dec.at)) + '</span></div>';
+        }
+        if (state.role !== 'reviewer') {
+          return row + '<span class="tag warn">Ожидает решения</span><button class="btn line" data-act="role" data-r="reviewer">Решить как проверяющий</button></div>';
+        }
+        var cur = state.drafts[key + '|v'] != null ? state.drafts[key + '|v'] : x.orig;
+        return row + '<div class="dec"><label for="' + fid + '-v">Оценка</label><select id="' + fid + '-v" class="in" data-draft="' + esc(key) + '|v">' + selectOptions(c, cur) + '</select>' +
+          '<label for="' + fid + '-r" class="sr">Причина решения</label><textarea id="' + fid + '-r" class="in" data-draft="' + esc(key) + '|reason" placeholder="Причина решения (обязательно)">' + esc(state.drafts[key + '|reason'] || '') + '</textarea>' +
+          (state.errs[key] ? '<p class="err">' + esc(state.errs[key]) + '</p>' : '') +
+          '<div class="tools"><button class="btn" type="button" data-act="decide-keep" data-d="' + esc(d.id) + '" data-c="' + esc(c.id) + '">Оставить оценку</button>' +
+          '<button class="btn line" type="button" data-act="decide-change" data-d="' + esc(d.id) + '" data-c="' + esc(c.id) + '">Изменить на выбранную</button></div></div></div>';
+      }).join('') + '</div>';
+    }
+    function analysisView() {
+      var d = dlg(state.did);
+      if (!d) return head('Анализ диалога', 'Диалог не выбран') + '<div class="dash">Выберите диалог в разделе «Диалоги».</div>';
       var rows = rowsFor(d), pend = rows.filter(function (x) { return x.pending; }).length;
-      return '<div class="cqa-detail-head"><h3>' + (d.voice ? 'Анализ разговора' : 'Анализ чата') + '</h3><span>' + esc(d.id) + ' · ' +
-        (d.voice ? 'звонок' : 'чат') + ' · ' + esc(d.lang) + ' · ' + (Number.isFinite(d.duration) ? mmss(d.duration) : 'Время не указано') + '</span></div>' +
-        (pend ? '<div class="cqa-warnbar cqa-row">Не оценено критериев: ' + pend + '. <button class="cqa-btn" data-act="eval-dialog" data-d="' + esc(d.id) + '">Оценить диалог</button></div>' : '') +
-        (d.voice ? playerHTML(d) : '') +
-        '<div class="cqa-split">' + transcriptHTML(d) + resultHTML(d) + '</div>';
+      var sub = esc(d.id) + ' · ' + (d.voice ? 'Звонок' : 'Чат') + ' · ' + esc(d.lang) + ' · ' + (Number.isFinite(d.duration) ? mmss(d.duration) : 'время не указано');
+      return '<div class="vw grid on">' +
+        head('Анализ диалога', sub, '<button class="btn line" data-act="view" data-v="dialogs">← К списку</button>' +
+          '<button class="btn" data-act="eval-dialog" data-d="' + esc(d.id) + '">' + (pend ? 'Оценить с ИИ' : 'Оценить заново') + '</button>') +
+        '<section class="card left"><h3>Расшифровка</h3>' + (d.voice ? playerHTML(d) : '') + chatHTML(d) + '</section>' +
+        '<aside class="card right">' + scoreHTML(d) + '</aside>' +
+        '<section class="card foot" id="cqa-foot">' + footHTML(d) + '</section></div>';
     }
 
-    function dialogsView() {
-      var head = '<div class="cqa-head"><h2>Диалоги</h2><p>Выберите диалог. Реплика-доказательство в оценке ведёт к нужному месту в расшифровке' +
-        (state.role === 'reviewer' ? '. Вы смотрите как проверяющий: у спорных критериев есть форма решения.' : '. Любой критерий можно оспорить.') + '</p></div>';
-      if (!state.dialogs.length) return head + '<div class="cqa-empty"><p>В наборе нет диалогов.</p><p>Для первой проверки загрузите JSON с диалогами или аудиозапись. В разделе «Модель, импорт и история» проверьте подключение к Ollama и выберите установленную локальную модель.</p><p><a class="cqa-btn" href="/classic">Импортировать JSON и настроить модель</a> <a class="cqa-btn" href="/audio">Загрузить аудио</a></p></div>';
-      var shown = opts.filterDialogs ? opts.filterDialogs(state.dialogs,state.filter) : state.dialogs;
-      if (!shown.some(function (d) { return d.id===state.did; })) {
-        state.did=shown.length?shown[0].id:null; state.t=0; state.playing=false; state.hl=null; setAudio(dlg(state.did));
-      }
-      return head + listHTML() + (dlg(state.did) ? detailHTML(dlg(state.did)) : '');
-    }
-
+    /* ---------- Апелляции ---------- */
     function appealsView() {
       var items = [];
       state.dialogs.forEach(function (d) {
-        state.checklist.criteria.forEach(function (c) {
-          var ap = state.appeals[d.id + '|' + c.id];
-          if (ap) items.push({ d: d, c: c, ap: ap });
-        });
+        state.checklist.criteria.forEach(function (c) { var ap = state.appeals[d.id + '|' + c.id]; if (ap) items.push({ d: d, c: c, ap: ap }); });
       });
-      var h = '<div class="cqa-head"><h2>Апелляции</h2><p>Спорные оценки. Проверяющий открывает карточку, смотрит фрагмент диалога и принимает решение.</p></div>';
-      if (!items.length) return h + '<div class="cqa-empty">Апелляций пока нет. Оспорить оценку можно в карточке диалога.</div>';
-      return h + '<div class="cqa-queue">' + items.map(function (it) {
-        return '<div class="cqa-q-item"><div><h4>' + esc(it.c.title) + ' · ' + esc(it.d.id) + '</h4><p>' + esc(it.ap.comment) + '</p></div>' +
-          '<div class="cqa-row"><span class="cqa-tag ' + (it.ap.dec ? '' : 'cqa-tag--warn') + '">' + (it.ap.dec ? (it.ap.dec.kind === 'changed' ? 'Изменена' : 'Подтверждена') : 'Ждёт решения') + '</span>' +
-          '<button class="cqa-btn" data-act="goto-appeal" data-d="' + esc(it.d.id) + '" data-c="' + it.c.id + '">Открыть</button></div></div>';
-      }).join('') + '</div>';
+      items.sort(function (a, b) { return (a.ap.dec ? 1 : 0) - (b.ap.dec ? 1 : 0); });
+      var h = head('Апелляции', 'Спорные оценки и решения проверяющего · открытых: ' + openCount());
+      return h + '<div id="alist">' + items.map(function (it) {
+        var st = it.ap.dec ? (it.ap.dec.kind === 'changed' ? 'Оценка изменена проверяющим' : 'Оценка подтверждена') : 'Ожидает решения';
+        return '<div class="dl"><b>' + esc(it.d.id) + ' · ' + esc(it.c.title) + '<br><small>' + esc(it.ap.comment) + '</small></b>' +
+          '<span class="tag' + (it.ap.dec ? ' ok' : ' warn') + '">' + st + '</span>' +
+          '<button class="btn' + (it.ap.dec ? ' line' : '') + '" data-act="goto-appeal" data-d="' + esc(it.d.id) + '" data-c="' + esc(it.c.id) + '">' + (it.ap.dec ? 'Открыть' : state.role === 'reviewer' ? 'Решить' : 'Открыть') + '</button></div>';
+      }).join('') + (items.length ? '' : '<div class="dash">Пока пусто — новые апелляции появятся здесь</div>') + '</div>';
     }
 
-    function sig(cl) { return JSON.stringify({ r: cl.rounding, c: cl.criteria }); }
+    /* ---------- Чек-листы ---------- */
+    function sig(cl) {
+      return JSON.stringify({ r: cl.rounding, c: cl.criteria.map(function (c) {
+        var o = {}; Object.keys(c).forEach(function (k) { if (k.charAt(0) !== '_') o[k] = c[k]; }); return o;
+      }) });
+    }
+    function weightSum() { return state.draft.criteria.reduce(function (a, x) { return a + (x.gross ? 0 : Number(x.weight) || 0); }, 0); }
     function updateDirty() {
       var dirty = state.draft && sig(state.draft) !== sig(state.checklist);
-      ['ck-save','ck-reset'].forEach(function (act) {
-        var button = root.querySelector('[data-act="' + act + '"]'); if (button) button.disabled = !dirty;
-      });
+      ['ck-save', 'ck-reset'].forEach(function (act) { var b = root.querySelector('[data-act="' + act + '"]'); if (b) b.disabled = !dirty; });
+      var w = root.querySelector('#cqa-wsum');
+      if (w) { var s = Math.round(weightSum() * 100) / 100; w.textContent = 'Сумма весов: ' + String(s).replace('.', ','); w.className = 'tag ' + (s === 100 ? 'ok' : 'warn'); }
     }
     function checklistView() {
       if (!state.draft) state.draft = clone(state.checklist);
-      var dr = state.draft, dirty = sig(dr) !== sig(state.checklist);
-      var sum = dr.criteria.reduce(function (a, c) { return a + (c.gross ? 0 : Number(c.weight) || 0); }, 0);
-      var rows = dr.criteria.map(function (c, i) {
-        var opts = state.checklist.sections.map(function (s) { return '<option value="' + s.id + '"' + (c.section === s.id ? ' selected' : '') + '>' + esc(s.title) + '</option>'; }).join('');
-        var tv = c.gross ? 'gross' : c.type;
-        return '<div class="cqa-ck-row">' +
-          '<label class="cqa-fld cqa-fld--grow"><span>Название критерия</span><input class="cqa-in" type="text" value="' + esc(c.title) + '" data-ck="title" data-i="' + i + '"></label>' +
-          '<label class="cqa-fld cqa-fld--s"><span>Секция</span><select class="cqa-in" data-ck="section" data-i="' + i + '">' + opts + '</select></label>' +
-          '<label class="cqa-fld cqa-fld--s"><span>Тип ответа</span><select class="cqa-in" data-ck="type" data-i="' + i + '"><option value="binary"' + (tv === 'binary' ? ' selected' : '') + '>Да / Нет</option><option value="scale"' + (tv === 'scale' ? ' selected' : '') + '>Шкала</option><option value="gross"' + (tv === 'gross' ? ' selected' : '') + '>Грубая ошибка</option></select></label>' +
-          '<label class="cqa-fld cqa-fld--s"><span>Ступени шкалы</span><input class="cqa-in" type="text" value="' + (c.type === 'scale' ? esc((c.steps || []).join(', ')) : '') + '"' + (c.type === 'scale' ? '' : ' disabled') + ' placeholder="20, 15, 10, 5, 0" data-ck="steps" data-i="' + i + '"></label>' +
-          '<label class="cqa-fld cqa-fld--xs"><span>Вес</span><input class="cqa-in" type="number" min="0" max="100" value="' + (c.gross ? 0 : c.weight) + '"' + (c.gross ? ' disabled' : '') + ' data-ck="weight" data-i="' + i + '"></label>' +
-          '<label class="cqa-fld cqa-fld--chk"><input type="checkbox"' + (c.naAllowed ? ' checked' : '') + (c.gross ? ' disabled' : '') + ' data-ck="na" data-i="' + i + '"><span>Разрешить N/A</span></label>' +
-          '<button class="cqa-btn cqa-btn--danger" data-act="ck-del" data-i="' + i + '"' + (dr.criteria.length < 2 ? ' disabled' : '') + '>Удалить</button>' +
-          '<label class="cqa-fld cqa-fld--full"><span>Правило оценки (его читает модель)</span><textarea class="cqa-in" rows="2" data-ck="desc" data-i="' + i + '">' + esc(c.desc || '') + '</textarea></label><label class="cqa-fld cqa-fld--full"><span>Условие N/A</span><textarea class="cqa-in" rows="2" data-ck="naRule" data-i="' + i + '">' + esc(c.naRule || '') + '</textarea></label></div>';
+      var dr = state.draft, dirty = sig(dr) !== sig(state.checklist), sum = Math.round(weightSum() * 100) / 100, n = 0;
+      var body = state.checklist.sections.map(function (s) {
+        var list = dr.criteria.map(function (c, i) { return { c: stepUI(c), i: i }; }).filter(function (x) { return x.c.section === s.id; });
+        if (!list.length) return '';
+        return '<h3 class="grp">' + esc(s.title) + '</h3>' + list.map(function (x) {
+          var c = x.c, i = x.i, tv = c.gross ? 'gross' : c.type;
+          var secOpts = state.checklist.sections.map(function (o) { return '<option value="' + o.id + '"' + (c.section === o.id ? ' selected' : '') + '>' + esc(o.title) + '</option>'; }).join('');
+          var steps = c.type === 'scale' ? c.steps.map(function (v, k) {
+            return '<div class="st"><input class="in sc" value="' + v + '" inputmode="decimal" aria-label="Балл" data-ck="step" data-i="' + i + '" data-k="' + k + '">' +
+              '<input class="in sd" value="' + esc(c._labels[v] || '') + '" placeholder="Описание ступени" aria-label="Описание ступени" data-ck="label" data-i="' + i + '" data-k="' + k + '">' +
+              '<button class="chip" type="button" aria-label="Удалить ступень" data-act="step-del" data-i="' + i + '" data-k="' + k + '"' + (c.steps.length <= 2 ? ' disabled' : '') + '>×</button></div>';
+          }).join('') + '<div class="st"><button class="chip" type="button" data-act="step-add" data-i="' + i + '">+ Ступень</button></div>' : '';
+          return '<div class="cl"><div class="cf"><span class="num">' + pad(++n) + '</span>' +
+            '<input class="in n" value="' + esc(c.title) + '" aria-label="Название" data-ck="title" data-i="' + i + '">' +
+            '<label>Вес <input class="in w" type="number" min="0" max="100" step="any" value="' + (c.gross ? 0 : c.weight) + '"' + (c.gross ? ' disabled' : '') + ' data-ck="weight" data-i="' + i + '"></label>' +
+            '<select class="in" aria-label="Тип ответа" data-ck="type" data-i="' + i + '"><option value="binary"' + (tv === 'binary' ? ' selected' : '') + '>Да / Нет</option><option value="scale"' + (tv === 'scale' ? ' selected' : '') + '>Шкала</option><option value="gross"' + (tv === 'gross' ? ' selected' : '') + '>Грубая ошибка</option></select>' +
+            '<label><input type="checkbox"' + (c.naAllowed ? ' checked' : '') + (c.gross ? ' disabled' : '') + ' data-ck="na" data-i="' + i + '"> N/A</label>' +
+            (c.gross ? '<span class="tag">Без баллов · отметка отдельно</span>' : '') +
+            '<button class="chip" type="button" data-act="ck-del" data-i="' + i + '"' + (dr.criteria.length < 2 ? ' disabled' : '') + '>Удалить</button></div>' +
+            '<div class="cf sub"><label>Секция <select class="in" data-ck="section" data-i="' + i + '">' + secOpts + '</select></label><span class="mono">ID ' + esc(c.id) + '</span></div>' +
+            steps +
+            '<textarea class="in" aria-label="Формулировка" placeholder="Правило оценки — его читает модель" data-ck="' + (c.type === 'scale' ? 'base' : 'desc') + '" data-i="' + i + '">' + esc(c.type === 'scale' ? c._base : c.desc || '') + '</textarea>' +
+            (c.naAllowed ? '<span class="cap">Когда ставится N/A</span><textarea class="in na" aria-label="Условие N/A" placeholder="Когда ставится N/A (обязательно)" data-ck="naRule" data-i="' + i + '">' + esc(c.naRule || '') + '</textarea>' : '') +
+            '</div>';
+        }).join('');
       }).join('');
-      return '<div class="cqa-head"><h2>Чек-листы</h2><p>Меняйте формулировки, правила, веса и типы ответа. Изменения вступают в силу после сохранения конфигурации. Критерии, у которых изменились название, правило, тип или шкала, ждут повторной оценки.</p></div>' +
-        '<div class="cqa-ck">' + rows + '</div>' +
-        '<div class="cqa-ck-foot"><div class="cqa-ck-set">' +
-        '<button class="cqa-btn" data-act="ck-add">Добавить критерий</button>' +
-        '<label class="cqa-fld cqa-fld--s"><span>Округление итога</span><select class="cqa-in" data-ck="rounding"><option value="0"' + (dr.rounding === 0 ? ' selected' : '') + '>до целых</option><option value="1"' + (dr.rounding === 1 ? ' selected' : '') + '>до десятых</option><option value="2"' + (dr.rounding === 2 ? ' selected' : '') + '>до сотых</option></select></label>' +
-        '<span id="cqa-wsum" class="cqa-w">Сумма весов: ' + sum + '. Итог приводится к 100.</span></div>' +
-        '<div class="cqa-row"><button class="cqa-btn" data-act="ck-reset"' + (dirty ? '' : ' disabled') + '>Отменить правки</button>' +
-        '<button class="cqa-btn cqa-btn--primary" data-act="ck-save"' + (dirty ? '' : ' disabled') + '>Сохранить конфигурацию</button>' +
-        '<button class="cqa-btn" data-act="ck-apply">Применить к диалогам</button></div></div>' +
-        '<p class="cqa-note">Версия ' + state.checklist.version + (dirty ? ', есть несохранённые правки.' : ', сохранена.') + ' «Применить к диалогам» оценивает все критерии без результата (один запрос к модели на диалог).</p>';
+      return head('Чек-листы', esc(state.checklist.name || 'Чек-лист') + ' · версия ' + state.checklist.version + ' · критериев: ' + dr.criteria.length + (dirty ? ' · есть несохранённые правки' : ''),
+        '') +
+        '<div id="clist"><div class="tools bar"><span id="cqa-wsum" class="tag ' + (sum === 100 ? 'ok' : 'warn') + '">Сумма весов: ' + String(sum).replace('.', ',') + '</span>' +
+        '<label class="chk">Округление <select class="in" data-ck="rounding"><option value="0"' + (dr.rounding === 0 ? ' selected' : '') + '>до целых</option><option value="1"' + (dr.rounding === 1 ? ' selected' : '') + '>до десятых</option><option value="2"' + (dr.rounding === 2 ? ' selected' : '') + '>до сотых</option></select></label>' +
+        '<button class="btn line" type="button" data-act="ck-add">+ Критерий</button>' +
+        '<button class="btn line" type="button" data-act="ck-reset"' + (dirty ? '' : ' disabled') + '>Отменить правки</button>' +
+        '<button class="btn" type="button" data-act="ck-save"' + (dirty ? '' : ' disabled') + '>Сохранить чек-лист</button>' +
+        '<button class="btn line" type="button" data-act="ck-apply">Применить к диалогам</button></div>' +
+        body +
+        '<div class="card calc"><h3>Порядок расчёта</h3><p>1. N/A ставится только там, где он разрешён и выполнено условие. 2. «Да» даёт полный вес, «Нет» — ноль, для шкалы выбирается одна из ступеней. ' +
+        '3. Шкальные баллы пересчитываются пропорционально весу: верхняя ступень даёт полный вес. 4. Критерии с N/A исключаются, их вес перераспределяется между применимыми, максимум остаётся 100. ' +
+        '5. Итог округляется по настройке; грубые ошибки отмечаются отдельно.</p>' +
+        '<p class="small">Сохранение создаёт новую версию. Критерии с изменённым названием, правилом, типом или шкалой ждут новой оценки; «Применить к диалогам» запускает её (один запрос к модели на диалог).</p></div></div>';
     }
-
     function validateDraft() {
       var dr = state.draft, i, c;
       for (i = 0; i < dr.criteria.length; i++) {
         c = dr.criteria[i];
         if (!String(c.title).trim()) return 'У критерия №' + (i + 1) + ' нет названия';
-        if (c.type === 'scale' && !(c.steps && c.steps.length >= 2)) return 'У критерия «' + c.title + '» нужны минимум две ступени шкалы';
+        if (!String(c.desc || '').trim()) return 'У критерия «' + c.title + '» нет правила оценки';
+        if (c.type === 'scale') {
+          if (!(c.steps && c.steps.length >= 2)) return 'У критерия «' + c.title + '» нужны минимум две ступени шкалы';
+          if (c.steps.indexOf(0) < 0) return 'Шкала критерия «' + c.title + '» должна содержать ступень 0';
+          if (new Set(c.steps).size !== c.steps.length) return 'Ступени шкалы «' + c.title + '» повторяются';
+        }
+        if (c.naAllowed && !String(c.naRule || '').trim()) return 'Укажите условие N/A для критерия «' + c.title + '»';
       }
-      var sum = dr.criteria.reduce(function (a, x) { return a + (x.gross ? 0 : Number(x.weight) || 0); }, 0);
-      if (sum <= 0) return 'Сумма весов должна быть больше нуля';
+      if (weightSum() <= 0) return 'Сумма весов должна быть больше нуля';
       return '';
     }
 
-    /* --- отрисовка --- */
+    /* ---------- модальное окно апелляции ---------- */
+    function modalHTML() {
+      if (!state.form) return '';
+      var parts = state.form.split('|'), d = dlg(parts[0]);
+      var x = d && rowsFor(d).filter(function (r) { return r.c.id === parts[1]; })[0];
+      if (!x || !x.r) return '';
+      var c = x.c, key = state.form, p = score(rowsFor(d), true).byRow[c.id];
+      var ev = (x.r.evidence || []).map(function (i) { var m = d.msgs[i]; return m ? '<p class="q">' + esc(shortTs(m.ts)) + ' · ' + esc(SP[m.sp] || m.sp) + ': «' + esc(m.tx) + '»</p>' : ''; }).join('');
+      return '<div class="ov on"><button class="ov-bg" type="button" data-act="appeal-cancel" aria-label="Закрыть"></button>' +
+        '<div class="mdl" role="dialog" aria-modal="true" aria-labelledby="cqa-mt"><h3 id="cqa-mt">Апелляция: ' + esc(c.title) + '</h3>' +
+        '<p><b>Оценка ИИ:</b> ' + esc(ans(c, x.orig)) + (p && !c.gross ? ' · ' + fmt(p.pts) + ' из ' + fmt(p.eff) : '') + '</p>' +
+        '<p>' + esc(x.r.v === 'na' ? x.r.na : x.r.why) + '</p>' + ev +
+        '<label class="sr" for="cqa-ap-text">Комментарий</label><textarea id="cqa-ap-text" class="in" data-draft="' + esc(key) + '|comment" placeholder="Почему вы не согласны с оценкой?">' + esc(state.drafts[key + '|comment'] || '') + '</textarea>' +
+        (state.errs[key] ? '<p class="err">' + esc(state.errs[key]) + '</p>' : '') +
+        '<div class="row"><button class="btn line" type="button" data-act="appeal-cancel">Отмена</button><button class="btn" type="button" data-act="appeal-send" data-d="' + esc(d.id) + '" data-c="' + esc(c.id) + '">Отправить апелляцию</button></div></div></div>';
+    }
+
+    /* ================================================================ отрисовка */
     function bodyHTML() {
-      if (state.loading) return '<div class="cqa-empty">Загрузка данных…</div>';
+      if (state.loading) return '<div class="dash">Загрузка данных…</div>';
       if (state.loadErr || !state.checklist) {
-        return '<div class="cqa-empty"><p>Не удалось загрузить данные: ' + esc(state.loadErr || 'нет ответа сервера') + '</p><p><a class="cqa-btn" href="/classic">Импортировать JSON и проверить настройки</a></p></div>';
+        return '<div class="dash"><p>Не удалось загрузить данные: ' + esc(state.loadErr || 'нет ответа сервера') + '</p><p><a class="btn" href="/classic">Импортировать JSON и проверить настройки</a></p></div>';
       }
-      return state.view === 'dialogs' ? dialogsView() : state.view === 'appeals' ? appealsView() : checklistView();
+      if (state.view === 'analysis') return analysisView();
+      return '<div class="vw on">' + (state.view === 'appeals' ? appealsView() : state.view === 'checklist' ? checklistView() : dialogsView()) + '</div>';
     }
     function render() {
-      root.className = 'cqa';
-      root.innerHTML = navHTML() + '<main class="cqa-main">' + bodyHTML() +
-        (state.toast ? '<div class="cqa-toast" role="status">' + esc(state.toast) + '</div>' : '') + '</main>';
+      var scroll = window.scrollY;
+      root.className = 'shell';
+      root.innerHTML = sideHTML() + '<main class="main">' + bodyHTML() + '</main>' + modalHTML() +
+        (state.toast ? '<div class="toast" role="status">' + esc(state.toast) + '</div>' : '');
+      window.scrollTo(0, scroll);
       post();
     }
     function toast(msg, sticky) {
       state.toast = msg;
-      var el = root.querySelector('.cqa-toast');
-      if (!el) {
-        var main = root.querySelector('.cqa-main');
-        if (main) { el = document.createElement('div'); el.className = 'cqa-toast'; el.setAttribute('role', 'status'); main.appendChild(el); }
-      }
-      if (el) el.textContent = msg;
+      var el = root.querySelector('.toast');
+      if (!el) { el = document.createElement('div'); el.className = 'toast'; el.setAttribute('role', 'status'); root.appendChild(el); }
+      el.textContent = msg;
       clearTimeout(toastT);
-      if (!sticky) {
-        toastT = setTimeout(function () {
-          if (state.toast === msg) {
-            state.toast = '';
-            var t = root.querySelector('.cqa-toast');
-            if (t) t.remove();
-          }
-        }, 3200);
-      }
+      if (!sticky) toastT = setTimeout(function () { if (state.toast === msg) { state.toast = ''; var t = root.querySelector('.toast'); if (t) t.remove(); } }, 3600);
     }
+    /* стили, которые зависят от данных: только через CSSOM (CSP запрещает style="…") */
     function post() {
+      Array.prototype.forEach.call(root.querySelectorAll('[data-h]'), function (el) { el.style.height = el.getAttribute('data-h') + '%'; });
+      Array.prototype.forEach.call(root.querySelectorAll('[data-left]'), function (el) { el.style.left = el.getAttribute('data-left') + '%'; });
+      Array.prototype.forEach.call(root.querySelectorAll('.ring[data-p]'), function (el) { el.style.setProperty('--p', el.getAttribute('data-p')); });
       applyHL();
       updatePlayer();
+      var modal = root.querySelector('#cqa-ap-text');
+      if (modal && document.activeElement === document.body) modal.focus();
       if (state.focus) {
         var parts = state.focus.split('|');
-        var el = root.querySelector('[data-crit="' + parts[1] + '"]');
+        var el = root.querySelector('[data-crit-ap="' + parts[1] + '"]') || root.querySelector('[data-crit="' + parts[1] + '"]');
         if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center' });
         state.focus = null;
       }
@@ -504,134 +542,125 @@
 
     function applyHL() {
       var d = dlg(state.did);
-      var msgs = root.querySelectorAll('.cqa-msg');
       var idxs = state.hl && state.hl.d === state.did ? state.hl.idxs : [];
-      Array.prototype.forEach.call(msgs, function (el) {
-        el.classList.toggle('cqa-msg--hl', idxs.indexOf(Number(el.getAttribute('data-i'))) >= 0);
+      Array.prototype.forEach.call(root.querySelectorAll('.m[data-i]'), function (el) {
+        el.classList.toggle('hit', idxs.indexOf(Number(el.getAttribute('data-i'))) >= 0);
       });
       var region = root.querySelector('#cqa-region');
       if (region && d) {
         if (idxs.length) {
-          var a = d.msgs[Math.min.apply(null, idxs)].t;
-          var lastI = Math.max.apply(null, idxs);
+          var a = d.msgs[Math.min.apply(null, idxs)].t, lastI = Math.max.apply(null, idxs);
           var b = d.msgs[lastI + 1] ? d.msgs[lastI + 1].t : d.duration;
           region.hidden = false;
           region.style.left = (a / d.duration * 100) + '%';
-          region.style.width = ((b - a) / d.duration * 100) + '%';
-        } else {
-          region.hidden = true;
-        }
+          region.style.width = Math.max(1, (b - a) / d.duration * 100) + '%';
+        } else region.hidden = true;
       }
       var list = root.querySelector('#cqa-tr');
       if (list && idxs.length) {
         var target = list.querySelector('[data-i="' + Math.min.apply(null, idxs) + '"]');
-        if (target) list.scrollTop = Math.max(0, target.offsetTop - list.clientHeight / 3);
+        if (target) list.scrollTop = Math.max(0, target.offsetTop - list.offsetTop - list.clientHeight / 3);
       }
     }
     function updatePlayer() {
       var d = dlg(state.did);
-      if (!d || !d.voice) return;
-      var time = root.querySelector('#cqa-time');
+      if (!d || !d.voice || !d.seekable) return;
+      var time = root.querySelector('#ptime');
       if (!time) return;
       time.textContent = mmss(state.t) + ' / ' + mmss(d.duration);
-      var seek = root.querySelector('#cqa-seek');
-      if (seek) seek.value = state.t;
-      var head = root.querySelector('#cqa-playhead');
-      if (head) head.style.left = Math.min(100, state.t / d.duration * 100) + '%';
-      var play = root.querySelector('#cqa-play');
-      if (play) {
-        play.innerHTML = state.playing ? '&#10074;&#10074;' : '&#9654;';
-        play.setAttribute('aria-label', state.playing ? 'Пауза' : 'Воспроизвести');
-      }
+      var fill = root.querySelector('#cqa-fill');
+      if (fill) fill.style.clipPath = 'inset(0 ' + (100 - Math.min(100, state.t / d.duration * 100)).toFixed(2) + '% 0 0)';
+      var btn = root.querySelector('#cqa-play');
+      if (btn) { btn.textContent = state.playing ? '❚❚' : '▶'; btn.setAttribute('aria-label', state.playing ? 'Пауза' : 'Воспроизвести'); }
       var now = -1;
       d.msgs.forEach(function (m, i) { if (m.t <= state.t) now = i; });
-      Array.prototype.forEach.call(root.querySelectorAll('.cqa-msg'), function (el) {
-        el.classList.toggle('cqa-msg--now', state.playing && Number(el.getAttribute('data-i')) === now);
+      Array.prototype.forEach.call(root.querySelectorAll('.m[data-i]'), function (el) {
+        el.classList.toggle('now', (state.playing || state.t > 0) && Number(el.getAttribute('data-i')) === now);
       });
     }
     var timer = setInterval(function () {
       var d = dlg(state.did);
       if (!state.playing || !d) return;
       if (audio) { state.t = audio.currentTime; if (audio.ended) state.playing = false; }
-      else {
-        state.t += 0.25;
-        if (state.t >= d.duration) { state.t = d.duration; state.playing = false; }
-      }
       updatePlayer();
     }, 250);
 
     /* --- оценка --- */
     function runEval(d, ids) {
       if (state.busy || !ids.length) return;
-      state.busy = true; toast('Оцениваю…', true);
+      state.busy = true; toast('Оцениваю ' + d.id + '…', true); render();
       evalDialog(d, ids).then(function (res) {
         var n = Object.keys(res.errors || {}).length;
         toast(n ? 'Готово, но критериев с ошибкой модели: ' + n + '. Повторите оценку.' : 'Оценка готова.');
       }).catch(function (e) { toast('Ошибка: ' + e.message); }).then(function () { state.busy = false; render(); });
     }
+    function applyAll() {
+      var jobs = [];
+      state.dialogs.forEach(function (x) {
+        var ids = rowsFor(x).filter(function (r) { return r.pending; }).map(function (r) { return r.c.id; });
+        if (ids.length) jobs.push({ d: x, ids: ids });
+      });
+      if (!jobs.length) { toast('Все критерии уже оценены.'); return; }
+      state.busy = true;
+      toast('Оценка: 0 из ' + jobs.length + ' диалогов. Задача сохраняется на сервере.', true);
+      api('POST', '/api/batch', { dialogIds: jobs.map(function (j) { return j.d.id; }), hashes: Object.fromEntries(jobs.map(function (j) { return [j.d.id, j.d.hash]; })) }).then(function (data) {
+        replaceDialogs(data.dialogs); state.results = data.results; state.appeals = data.appeals;
+        toast('Проверка завершена. Диалогов: ' + jobs.length + ', ошибок: ' + data.errors.length + '.');
+      }).catch(function (error) { toast(error.message); }).finally(function () { state.busy = false; render(); });
+    }
 
-    /* --- события --- */
+    /* ================================================================ события */
     root.addEventListener('click', function (e) {
       var el = e.target.closest ? e.target.closest('[data-act]') : null;
-      if (!el || !root.contains(el)) return;
+      if (!el || !root.contains(el) || el.disabled) return;
       var a = el.getAttribute('data-act'), ds = el.getAttribute('data-d'), cid = el.getAttribute('data-c');
       var d = ds ? dlg(ds) : null;
 
-      if (state.busy && ['load-group','ck-save','ck-apply','eval','eval-dialog','appeal-send','decide-change','decide-keep'].indexOf(a) >= 0) { toast('Дождитесь завершения текущей проверки. Задача сохранена на сервере.'); return; }
+      if (state.busy && ['load-group', 'ck-save', 'ck-apply', 'eval-dialog', 'appeal-send', 'decide-change', 'decide-keep'].indexOf(a) >= 0) { toast('Дождитесь завершения текущей проверки. Задача сохранена на сервере.'); return; }
       if (a === 'view') {
         state.view = el.getAttribute('data-v');
         if (state.view === 'checklist' && !state.draft && state.checklist) state.draft = clone(state.checklist);
-        render();
+        render(); window.scrollTo(0, 0);
       } else if (a === 'load-group') {
-        var inp = root.querySelector('#cqa-group');
+        var inp = root.querySelector('#cqa-group'); state.view = 'dialogs';
         load(inp ? inp.value.trim() : '');
       } else if (a === 'role') {
         state.role = el.getAttribute('data-r'); state.form = null; render();
       } else if (a === 'open') {
-        state.did = el.getAttribute('data-id'); state.t = 0; state.playing = false; state.hl = null; state.form = null;
-        setAudio(dlg(state.did)); render();
-      } else if (a === 'goto' || a === 'range' || a === 'indices') {
+        state.did = el.getAttribute('data-id'); state.view = 'analysis'; state.t = 0; state.playing = false; state.hl = null; state.form = null;
+        setAudio(dlg(state.did)); render(); window.scrollTo(0, 0);
+      } else if (a === 'goto' || a === 'indices') {
         var idxs = [], t0 = 0;
         if (a === 'goto') { var mi = Number(el.getAttribute('data-m')); idxs = [mi]; t0 = d.msgs[mi].t; }
-        else if (a === 'indices') {
+        else {
           var first = Number(el.getAttribute('data-a')), last = Number(el.getAttribute('data-b')); t0 = d.msgs[first].t;
           for (var ix = first; ix <= last; ix++) idxs.push(ix);
-        } else {
-          var lo = Number(el.getAttribute('data-a')), hi = Number(el.getAttribute('data-b')); t0 = lo;
-          d.msgs.forEach(function (m, i) { if (m.t >= lo && m.t <= hi) idxs.push(i); });
         }
         state.hl = { d: d.id, idxs: idxs };
-        if (d.voice && d.seekable) seekTo(t0);
+        if (d.voice && d.seekable) { seekTo(t0); if (el.getAttribute('data-play') && audio) play(true); }
         applyHL(); updatePlayer();
-      } else if (a === 'play') {
-        var cur = dlg(state.did);
-        if (!cur || !audio) return;
-        if (state.playing) {
-          state.playing = false;
-          if (audio) audio.pause();
-        } else {
-          if (state.t >= cur.duration - 0.3) seekTo(0);
-          state.playing = true;
-          if (audio) {
-            audio.currentTime = state.t;
-            audio.play().catch(function () {
-              state.playing = false;
-              toast('Не удалось воспроизвести запись. Проверьте доступность аудиофайла.');
-              updatePlayer();
-            });
-          }
-        }
+        var tr = root.querySelector('#cqa-tr');
+        if (tr && tr.getBoundingClientRect().top < 0 && tr.scrollIntoView) tr.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      } else if (a === 'wave') {
+        var cur = dlg(state.did), box = el.getBoundingClientRect();
+        if (!cur || e.target.closest('.pin')) return;
+        seekTo(Math.max(0, Math.min(1, (e.clientX - box.left) / box.width)) * cur.duration);
+        if (state.playing && audio) audio.currentTime = state.t;
         updatePlayer();
+      } else if (a === 'play') {
+        play(!state.playing);
       } else if (a === 'appeal-open') {
         state.form = ds + '|' + cid; render();
       } else if (a === 'appeal-cancel') {
         state.form = null; render();
+      } else if (a === 'to-foot') {
+        var foot = root.querySelector('#cqa-foot'); if (foot) foot.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else if (a === 'appeal-send') {
         var key = ds + '|' + cid, text = (state.drafts[key + '|comment'] || '').trim();
         if (!text) { state.errs[key] = 'Опишите, с чем вы не согласны.'; render(); return; }
-        state.errs[key] = '';
+        state.errs[key] = ''; el.disabled = true;
         api('POST', '/api/appeals', { dialogId: ds, criterionId: cid, comment: text, evaluationId: state.results[ds][cid].evaluationId }).then(function (ap) {
-          state.appeals[key] = ap; state.form = null; delete state.drafts[key + '|comment'];
+          state.appeals[key] = ap; state.form = null; delete state.drafts[key + '|comment']; state.focus = key;
           toast('Апелляция сохранена. Проверяющий увидит её в очереди.'); render();
         }).catch(function (err) { state.errs[key] = err.message; render(); });
       } else if (a === 'decide-change' || a === 'decide-keep') {
@@ -643,100 +672,108 @@
         if (a === 'decide-change') {
           var raw = state.drafts[k2 + '|v'] != null ? String(state.drafts[k2 + '|v']) : String(row.orig);
           nv = raw === 'na' ? 'na' : Number(raw);
+          if (String(nv) === String(row.orig)) { state.errs[k2] = 'Выберите оценку, отличную от ответа модели, или нажмите «Оставить оценку».'; render(); return; }
         }
-        state.errs[k2] = '';
+        state.errs[k2] = ''; el.disabled = true;
+        var before = score(rowsFor(d), true).total;
         api('POST', '/api/appeals/decide', { dialogId: ds, criterionId: cid, v: nv, reason: reason, appealId: state.appeals[k2].id }).then(function (ap) {
           state.appeals[k2] = ap; delete state.drafts[k2 + '|reason']; delete state.drafts[k2 + '|v'];
-          toast('Решение сохранено, итог пересчитан.'); render();
+          toast('Решение сохранено. Итог: ' + fmt(before) + ' → ' + fmt(score(rowsFor(d), true).total) + '.'); render();
         }).catch(function (err) { state.errs[k2] = err.message; render(); });
       } else if (a === 'goto-appeal') {
-        state.view = 'dialogs'; state.did = ds; state.t = 0; state.playing = false; state.hl = null; state.focus = ds + '|' + cid;
+        state.view = 'analysis'; state.did = ds; state.t = 0; state.playing = false; state.hl = null; state.focus = ds + '|' + cid;
         setAudio(dlg(ds)); render();
-      } else if (a === 'eval') {
-        runEval(d, [cid]);
       } else if (a === 'eval-dialog') {
-        runEval(d, rowsFor(d).filter(function (x) { return x.pending; }).map(function (x) { return x.c.id; }));
+        var pending = rowsFor(d).filter(function (x) { return x.pending; }).map(function (x) { return x.c.id; });
+        runEval(d, pending.length ? pending : state.checklist.criteria.map(function (c) { return c.id; }));
       } else if (a === 'ck-add') {
-        state.draft.criteria.push({ id: 'c' + Date.now().toString(36), section: state.checklist.sections[0].id, title: 'Новый критерий', desc: '', weight: 5, type: 'binary', naAllowed: false });
+        var sec = state.draft.criteria.length ? state.draft.criteria[state.draft.criteria.length - 1].section : state.checklist.sections[0].id;
+        state.draft.criteria.push({ id: 'c' + Date.now().toString(36), section: sec, title: 'Новый критерий', desc: '', weight: 5, type: 'binary', naAllowed: false, naRule: '' });
         render();
+        var cls = root.querySelectorAll('.cl'); if (cls.length) { cls[cls.length - 1].scrollIntoView({ block: 'center' }); cls[cls.length - 1].querySelector('.n').select(); }
       } else if (a === 'ck-del') {
         state.draft.criteria.splice(Number(el.getAttribute('data-i')), 1); render();
+      } else if (a === 'step-add' || a === 'step-del') {
+        var sc = state.draft.criteria[Number(el.getAttribute('data-i'))];
+        if (a === 'step-add') { var mx = Math.max.apply(null, sc.steps.concat([0])); sc.steps.unshift(mx + 5); }
+        else { var gone = sc.steps.splice(Number(el.getAttribute('data-k')), 1)[0]; delete sc._labels[gone]; sc.desc = joinSteps(sc); }
+        render();
       } else if (a === 'ck-reset') {
         state.draft = clone(state.checklist); render();
       } else if (a === 'ck-save') {
         var err = validateDraft();
         if (err) { toast(err); return; }
+        el.disabled = true;
         api('PUT', '/api/checklist', state.draft).then(function (cl) {
           state.checklist = cl; state.draft = clone(cl); state.results = {}; state.appeals = {};
           state.dialogs.forEach(function (dialog) { delete dialog.grossAI; delete dialog.grossFinal; });
-          var pend = 0;
-          state.dialogs.forEach(function (x) { pend += rowsFor(x).filter(function (r) { return r.pending; }).length; });
-          toast('Конфигурация сохранена, версия ' + cl.version + (pend ? '. Критериев без оценки: ' + pend : '.')); render();
-        }).catch(function (e2) { toast('Ошибка: ' + e2.message); });
+          toast('Чек-лист сохранён, версия ' + cl.version + '. Нажмите «Применить к диалогам», чтобы оценить по новой версии.'); render();
+        }).catch(function (e2) { toast('Ошибка: ' + e2.message); render(); });
       } else if (a === 'ck-apply') {
-        if (state.busy) return;
-        var jobs = [];
-        state.dialogs.forEach(function (x) {
-          var ids = rowsFor(x).filter(function (r) { return r.pending; }).map(function (r) { return r.c.id; });
-          if (ids.length) jobs.push({ d: x, ids: ids });
-        });
-        if (!jobs.length) { toast('Все критерии уже оценены.'); return; }
-        state.busy = true;
-        toast('Оценка: 0 из ' + jobs.length + ' диалогов', true);
-        api('POST', '/api/batch', {dialogIds:jobs.map(function (j) { return j.d.id; }),hashes:Object.fromEntries(jobs.map(function (j) { return [j.d.id,j.d.hash]; }))}).then(function (data) {
-          replaceDialogs(data.dialogs); state.results = data.results; state.appeals = data.appeals;
-          toast('Проверка завершена. Диалогов: ' + jobs.length + ', ошибок: ' + data.errors.length + '.');
-        }).catch(function (error) { toast(error.message); }).finally(function () { state.busy = false; render(); });
+        if (state.view === 'checklist' && state.draft && sig(state.draft) !== sig(state.checklist)) { toast('Сначала сохраните чек-лист.'); return; }
+        applyAll();
       }
     });
 
     root.addEventListener('keydown', function (e) {
-      if (!state.busy && e.key === 'Enter' && e.target.id === 'cqa-group') load(e.target.value.trim());
+      if (!state.busy && e.key === 'Enter' && e.target.id === 'cqa-group') { state.view = 'dialogs'; load(e.target.value.trim()); }
+      if (e.key === 'Escape' && state.form) { state.form = null; render(); }
     });
 
     root.addEventListener('input', function (e) {
       var t = e.target;
-      if (t.getAttribute('data-filter')==='query') {var caret=t.selectionStart;state.filter.query=t.value;render();var search=root.querySelector('#cqa-search');search.focus();search.setSelectionRange(caret,caret);return;}
-      if (t.getAttribute('data-draft')) { state.drafts[t.getAttribute('data-draft')] = t.value; return; }
-      if (t.getAttribute('data-seek')) { seekTo(Number(t.value)); updatePlayer(); return; }
-      var f = t.getAttribute('data-ck');
-      if (f === 'title' || f === 'desc' || f === 'naRule' || f === 'weight' || f === 'steps') {
-        var c = state.draft.criteria[Number(t.getAttribute('data-i'))];
-        if (f === 'title') c.title = t.value;
-        if (f === 'desc') c.desc = t.value;
-        if (f === 'naRule') c.naRule = t.value;
-        if (f === 'weight') c.weight = Math.max(0, Number(t.value) || 0);
-        if (f === 'steps') { var st = parseSteps(t.value); if (st) c.steps = st; }
-        updateDirty();
-        var w = root.querySelector('#cqa-wsum');
-        if (w) w.textContent = 'Сумма весов: ' + state.draft.criteria.reduce(function (a, x) { return a + (x.gross ? 0 : Number(x.weight) || 0); }, 0) + '. Итог приводится к 100.';
+      if (t.getAttribute('data-filter') === 'query') {
+        var caret = t.selectionStart; state.filter.query = t.value; render();
+        var search = root.querySelector('#cqa-search'); search.focus(); search.setSelectionRange(caret, caret); return;
       }
+      if (t.getAttribute('data-draft')) { state.drafts[t.getAttribute('data-draft')] = t.value; return; }
+      var f = t.getAttribute('data-ck');
+      if (!f || !state.draft || f === 'rounding' || f === 'type' || f === 'section' || f === 'na') return;
+      var c = state.draft.criteria[Number(t.getAttribute('data-i'))];
+      if (f === 'title') c.title = t.value;
+      if (f === 'desc') c.desc = t.value;
+      if (f === 'naRule') c.naRule = t.value;
+      if (f === 'weight') c.weight = Math.max(0, Number(t.value) || 0);
+      if (f === 'base') { c._base = t.value; c.desc = joinSteps(c); }
+      if (f === 'label') { c._labels[c.steps[Number(t.getAttribute('data-k'))]] = t.value; c.desc = joinSteps(c); }
+      if (f === 'step') {
+        var k = Number(t.getAttribute('data-k')), v = Number(String(t.value).replace(',', '.'));
+        if (t.value.trim() !== '' && isFinite(v) && v >= 0) {
+          var old = c.steps[k]; c.steps[k] = v;
+          if (old !== v) { c._labels[v] = c._labels[old] || ''; delete c._labels[old]; c.desc = joinSteps(c); }
+        }
+      }
+      updateDirty();
     });
     root.addEventListener('change', function (e) {
       var t = e.target;
-      if (t.getAttribute('data-filter')==='gross' || t.getAttribute('data-filter')==='language') {state.filter[t.getAttribute('data-filter')]=t.type==='checkbox'?t.checked:t.value;state.playing=false;setAudio(null);render();setAudio(dlg(state.did));return;}
+      if (t.getAttribute('data-filter') === 'gross' || t.getAttribute('data-filter') === 'language') {
+        state.filter[t.getAttribute('data-filter')] = t.type === 'checkbox' ? t.checked : t.value; render(); return;
+      }
       if (t.getAttribute('data-draft')) { state.drafts[t.getAttribute('data-draft')] = t.value; return; }
       var f = t.getAttribute('data-ck');
       if (!f) return;
       if (f === 'rounding') { state.draft.rounding = Number(t.value); render(); return; }
       var c = state.draft.criteria[Number(t.getAttribute('data-i'))];
+      if (f === 'step') { c.steps.sort(function (x, y) { return y - x; }); render(); return; }
       if (f === 'section') c.section = t.value;
       if (f === 'type') {
-        if (t.value === 'gross') { c.type = 'binary'; c.gross = true; c.weight = 0; c.naAllowed = false; delete c.steps; }
+        if (t.value === 'gross') { c.type = 'binary'; c.gross = true; c.weight = 0; c.naAllowed = false; c.naRule = ''; if (c._base != null) c.desc = c._base; delete c.steps; delete c._labels; delete c._base; }
         else {
           if (c.gross) { c.gross = false; c.weight = 5; }
           c.type = t.value;
-          if (c.type === 'scale') c.steps = c.steps && c.steps.length >= 2 ? c.steps : [5, 4, 3, 2, 1, 0]; else delete c.steps;
+          if (c.type === 'scale') { c.steps = c.steps && c.steps.length >= 2 ? c.steps : [10, 5, 0]; delete c._labels; }
+          else { if (c._base != null) c.desc = c._base; delete c.steps; delete c._labels; delete c._base; }
         }
       }
-      if (f === 'na') c.naAllowed = t.checked;
-      if (f === 'title' || f === 'desc' || f === 'naRule' || f === 'weight') return;
+      if (f === 'na') { c.naAllowed = t.checked; if (!t.checked) c.naRule = ''; }
+      if (f === 'title' || f === 'desc' || f === 'naRule' || f === 'weight' || f === 'base' || f === 'label') return;
       render();
     });
 
     var polling = false;
     var jobsTimer = setInterval(function () {
-      if (polling || state.busy || !state.jobs || !state.jobs.length || root.contains(document.activeElement) && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+      if (polling || state.busy || !state.jobs || !state.jobs.length || state.form || root.contains(document.activeElement) && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
       polling = true;
       api('GET', '/api/bootstrap?group=' + encodeURIComponent(state.group) + '&rubricId=' + encodeURIComponent(state.checklist.id)).then(function (data) {
         if (data.checklist.id !== state.checklist.id) return;

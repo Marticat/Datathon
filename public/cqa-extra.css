@@ -1,26 +1,117 @@
-/* Дополнения к cqa.css под серверную версию */
-body { margin: 0; }
-.cqa a.cqa-nav-item { text-decoration: none; font-size: 12px; }
-.cqa .cqa-msg-t, .cqa .cqa-ev-t { overflow-wrap: anywhere; white-space: normal; }
-.cqa button:disabled { cursor: wait; opacity: .55; }
-.cqa .cqa-toast { max-width: min(90vw, 650px); }
-.cqa .cqa-list { max-height: 320px; overflow: auto; padding: 2px; }
-.cqa .cqa-item { min-width: 0; }
-.cqa .cqa-item-id { overflow-wrap: anywhere; }
-.cqa .cqa-group input, .cqa .cqa-group button { color: var(--cqa-fg); }
-.cqa .cqa-filters { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-.cqa .cqa-filters input[type="search"] { flex:1 1 200px; min-width:0; }
-.cqa .cqa-filters select { width:auto; }
-.cqa .cqa-filters label { display:flex; gap:6px; align-items:center; }
-.cqa .cqa-filters span { color:var(--cqa-muted); font-size:12px; }
-.cqa .cqa-group { margin-top: auto; padding: 12px 4px 0; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid rgba(255, 255, 255, 0.14); }
-.cqa .cqa-group .cqa-role-l { padding-left: 2px; }
-.cqa .cqa-group + .cqa-role { margin-top: 12px; }
-.cqa .cqa-fld--full { flex: 1 1 100%; }
-.cqa .cqa-fld--full textarea { resize: vertical; }
-.cqa .cqa-warnbar.cqa-row { justify-content: space-between; }
-@media (max-width: 760px) {
-  .cqa .cqa-group { margin: 0; padding: 0; border: 0; flex-direction: row; align-items: center; }
-  .cqa .cqa-group .cqa-role-l { display: none; }
-  .cqa .cqa-group .cqa-in { width: 110px; }
+/* Additions to the design (cqa.css) for the live workbench: elements the static template does not have.
+   Same tokens (--g, --line, --mut, …) so the look stays the design's. */
+
+#cqa-root.shell { align-items: start; }
+.main { width: 100%; min-width: 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- сайдбар: кнопки вместо radio-label ---------- */
+.side { display: flex; flex-direction: column; gap: 2px; }
+.side-i {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;
+  padding: 9px 12px; border: 0; border-radius: 8px; background: transparent; text-align: left;
+  color: var(--mut); font-weight: 500; font-size: 14px; transition: background .2s, color .2s, translate .2s ease-out;
+}
+.side-i:hover:not(:disabled) { background: rgba(0, 0, 0, .04); color: var(--ink); translate: 2px 0; }
+.side-i.on { background: #eef0ec; color: var(--ink); }
+.side-i:disabled { opacity: .45; cursor: default; }
+.side-n { min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--bad); color: #fff; font-size: 12px; font-weight: 700; text-align: center; }
+.side-b { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.side .side-l, .side label.side-l { display: block; color: var(--mut); font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; padding: 0 4px; border-radius: 0; }
+.side label.side-l:hover { background: none; translate: none; }
+.side-g { display: grid; gap: 6px; }
+.side-g .in { width: 100%; min-width: 0; padding: 7px 10px; }
+.side-g .btn { padding: 7px 10px; font-size: 13px; }
+.side-a { color: var(--mut); font-size: 13px; text-decoration: none; padding: 4px; border-radius: 6px; }
+.side-a:hover { color: var(--ink); background: rgba(0, 0, 0, .04); }
+.seg { display: flex; padding: 3px; border: 1px solid var(--line); border-radius: 8px; gap: 3px; }
+.seg button { flex: 1; min-width: 0; border: 0; border-radius: 6px; padding: 6px 2px; background: transparent; color: var(--mut); font-size: 12px; font-weight: 600; }
+.seg button.on { background: var(--g); color: #fff; }
+
+/* ---------- общие ---------- */
+a.btn, a.btn:visited { display: inline-block; text-decoration: none; color: #fff; }
+a.btn.line, a.btn.line:visited { color: var(--ink); }
+.btn.line:disabled, .btn:disabled { cursor: not-allowed; }
+.tag { white-space: nowrap; }
+.tag.warn { background: #fbf1e1; color: #8a5a12; }
+.tag.bad { background: #f6e8e4; color: var(--bad); }
+.dash p { margin: 6px 0; }
+.tools-c { justify-content: center; }
+.chk { display: inline-flex; gap: 6px; align-items: center; color: var(--mut); font-size: 14px; }
+.mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: var(--mut); }
+.err { margin: 6px 0 0; font-size: 14px; }
+.toast {
+  position: fixed; right: 18px; bottom: 18px; z-index: 50; max-width: min(92vw, 560px);
+  padding: 11px 16px; border-radius: 10px; background: var(--ink); color: #fff; font-size: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .18); animation: popIn .25s ease-out both;
+}
+
+/* ---------- Диалоги ---------- */
+.filters { margin-bottom: 14px; }
+.filters .in.s { flex: 1 1 240px; min-width: 0; margin: 0; }
+.filters .cnt { color: var(--mut); font-size: 13px; margin-left: auto; }
+.dl.cur { border-color: var(--g); }
+.dl b small { font-weight: 400; }
+
+/* ---------- Анализ ---------- */
+.grid > .head { margin-bottom: 4px; }
+.card.left, .card.right { min-width: 0; }
+.chat { max-height: 560px; }
+.chat .m { grid-template-columns: 66px 1fr; scroll-margin: 60px; }
+.chat .m p { overflow-wrap: anywhere; }
+.chat .m.bot b, .chat .m.system b { color: var(--mut); }
+.ctx { font-weight: 500; font-size: 11px; color: var(--mut); border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; margin-left: 4px; }
+.tbtn { border: 0; background: none; padding: 0; color: var(--mut); font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; text-align: left; }
+.tbtn:hover { color: var(--g); text-decoration: underline; }
+.wv { cursor: pointer; }
+.wv .reg { position: absolute; top: 0; bottom: 0; background: rgba(63, 122, 90, .14); border-radius: 4px; pointer-events: none; }
+.pp:disabled { opacity: .45; cursor: not-allowed; }
+audio.native { width: 100%; margin-bottom: 10px; }
+.score { flex-wrap: wrap; }
+.score .sum { flex: 1 1 160px; color: var(--mut); margin: 0; font-size: 13px; }
+.right h4.sec { display: flex; justify-content: space-between; gap: 8px; margin: 18px 0 2px; }
+.right h4.sec span { letter-spacing: 0; text-transform: none; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cr.focus { background: var(--hl); border-radius: 8px; padding-left: 8px; padding-right: 8px; }
+.cr.gross .cr-t i.no { background: #f6e8e4; }
+.cr-t i.part { background: #fbf1e1; color: #8a5a12; }
+.cr-t em { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cr p.ans { color: var(--ink); font-size: 13px; }
+.cr p.ans s { color: var(--mut); }
+.cr .rule { display: block; margin-top: 2px; font-size: 13px; }
+.cr .ev .chip { text-align: left; max-width: 100%; overflow-wrap: anywhere; }
+.ap .row b { min-width: 180px; }
+.ap .row .cm { flex: 1; min-width: 200px; display: grid; }
+.ap .row .cm small { color: var(--mut); font-size: 12px; }
+.ap .row .why { flex-basis: 100%; color: var(--mut); font-size: 14px; }
+.ap .dec { flex-basis: 100%; display: grid; grid-template-columns: auto 1fr; gap: 8px 10px; align-items: center; }
+.ap .dec label { color: var(--mut); font-size: 13px; }
+.ap .dec select { justify-self: start; }
+.ap .dec textarea, .ap .dec .err, .ap .dec .tools { grid-column: 1 / -1; }
+.ap .dec textarea { min-height: 54px; }
+
+/* ---------- Чек-листы ---------- */
+#clist .bar { margin-bottom: 6px; position: sticky; top: 0; z-index: 3; padding: 10px 0; background: var(--bg); }
+.cf.sub { margin-top: 8px; }
+.cf.sub label { font-size: 13px; }
+.cl textarea.na { min-height: 40px; margin-top: 4px; }
+.cl .cap { display: block; margin-top: 8px; color: var(--mut); font-size: 12px; font-weight: 600; }
+.calc { margin-top: 18px; }
+.calc p { margin: 0 0 6px; color: var(--mut); font-size: 14px; }
+.calc p.small { font-size: 13px; margin: 0; }
+
+/* ---------- модальное окно ---------- */
+.ov.on { display: grid; }
+.ov-bg { border: 0; background: transparent; padding: 0; }
+
+@media (max-width: 900px) {
+  #cqa-root.shell { display: block; }
+  .side { flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .side-i { width: auto; white-space: nowrap; }
+  .side-b { flex-basis: 100%; margin-top: 6px; padding-top: 10px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+  .side .side-l, .side label.side-l { display: none; }
+  .side-g { flex: 1 1 220px; grid-template-columns: 1fr auto; }
+  .seg { flex: 1 1 200px; }
+  .side-a { font-size: 12px; padding: 2px 4px; }
+  .filters .cnt { margin-left: 0; }
+  .ap .row b { min-width: 0; }
 }
