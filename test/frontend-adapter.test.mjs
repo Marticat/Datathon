@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultRubric } from '../server/rubric.mjs';
-import { toChecklist, toRubric, toBootstrap, createArchiveApi, filterDialogs } from '../public/cqa-api.js';
+import { toChecklist, toRubric, toBootstrap, createArchiveApi, filterDialogs, listChecklists } from '../public/cqa-api.js';
 test('new frontend preserves official scales, NA rules and separate gross flag',()=>{
  const r=defaultRubric(),c=toChecklist(r),back=toRubric(c);
  assert.deepEqual(back.criteria,r.criteria);assert.deepEqual(c.criteria[5].steps,[10,7,4,0]);assert.equal(c.criteria[7].gross,true);
@@ -90,4 +90,12 @@ test('embedded component calls a configurable server address and imports uploade
  const result=await api('POST','/api/import-json',{payload:{isSuccess:true,data:{dataset_group_id:'CALLS',records:[]}}});
  assert.equal(result.imported,1);assert.equal(result.group,'CALLS');assert.deepEqual(result.dialogs.map(d=>[d.id,d.audio]),[['call-1','https://cdn.example/call-1.mp3']]);
  assert.ok(seen.every(url=>url.startsWith('https://cqa.example.com/api/')),seen.join(' '));
+});
+
+test('checklists are listed by name with the shipped default as the protected standard',()=>{
+ const std=defaultRubric(),custom={...std,id:'x1',version:2,name:'Продажи',criteria:std.criteria.slice(0,2),createdAt:'2026-11-08T10:00:00Z'};
+ const next={...custom,id:'x2',version:3,createdAt:'2026-11-08T11:00:00Z'};
+ const lists=listChecklists([std,custom,next]);
+ assert.deepEqual(lists.map(l=>[l.name,l.standard,l.versions,l.id]),[[std.name,true,1,std.id],['Продажи',false,2,'x2']]);
+ assert.deepEqual(toBootstrap({...state(),rubrics:[std,custom,next]},'DEV','x1').checklists,lists);
 });

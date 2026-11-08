@@ -104,3 +104,13 @@ body:has(> [data-cqa]) { margin: 0; background: #f7f7f4; }
   .cqa .filters .cnt { margin-left: 0; }
   .cqa .ap .row b { min-width: 0; }
 }
+
+/* ---------- список чек-листов ---------- */
+.cqa .lists { margin-bottom: 18px; }
+.cqa .lists .dl { padding: 10px 16px; }
+.cqa .lists .dl .chip { padding: 6px 12px; }
+.cqa #clist .bar .name { flex: 1 1 260px; }
+.cqa #clist .bar .name .in { flex: 1; min-width: 0; font-weight: 600; color: var(--ink); }
+.cqa #clist .note { margin: 0 0 10px; padding: 10px 14px; border-radius: 8px; background: var(--hl); color: var(--ink); font-size: 14px; }
+.cqa .fs { border: 0; margin: 0; padding: 0; min-width: 0; }
+.cqa .fs:disabled .cl { opacity: .75; }

@@ -95,13 +95,22 @@
         });
       });
     }
-    function load(group) {
+    /* rubricId: выбранный чек-лист (по умолчанию — последний выбранный в этом браузере) */
+    function load(group, rubricId) {
+      var first = !state.checklist, keep = state.did;
+      rubricId = rubricId || lsGet(LS_RUBRIC, '');
       state.loading = true; state.loadErr = ''; state.playing = false; setAudio(null); render();
-      return api('GET', '/api/bootstrap?group=' + encodeURIComponent(group || '')).then(function (data) {
-        state.group = data.group; state.groups = data.groups || []; state.checklist = data.checklist; state.draft = null; state.jobs = data.jobs || [];
+      return api('GET', '/api/bootstrap?group=' + encodeURIComponent(group || '') + (rubricId ? '&rubricId=' + encodeURIComponent(rubricId) : '')).then(function (data) {
+        state.checklists = data.checklists || [];
+        /* выбранный чек-лист скрыт в этом браузере или пропал → стандарт */
+        if (hiddenNames().indexOf(data.checklist.name) >= 0 && standardList() && standardList().id !== data.checklist.id) {
+          lsSet(LS_RUBRIC, standardList().id); return load(group, standardList().id);
+        }
+        lsSet(LS_RUBRIC, data.checklist.id);
+        state.group = data.group; state.groups = data.groups || []; state.checklist = data.checklist; state.draft = null; state.newList = false; state.jobs = data.jobs || [];
         state.dialogs = data.dialogs.map(prep); state.results = data.results || {}; state.appeals = data.appeals || {};
-        var wanted = state.dialogs.some(function (d) { return d.id === opts.dialog; });
-        state.did = wanted ? opts.dialog : state.dialogs.length ? state.dialogs[0].id : null;
+        var wanted = first && state.dialogs.some(function (d) { return d.id === opts.dialog; });
+        state.did = wanted ? opts.dialog : dlg(keep) ? keep : state.dialogs.length ? state.dialogs[0].id : null;
         if (wanted) state.view = 'analysis';
         state.t = 0; state.hl = null; state.form = null; state.loading = false;
         setAudio(dlg(state.did)); render();
@@ -220,7 +229,7 @@
     /* ---------- Диалоги ---------- */
     function dialogsView() {
       var pendingDialogs = state.dialogs.filter(function (d) { return rowsFor(d).some(function (x) { return x.pending; }); }).length;
-      var h = head('Диалоги', 'Выберите диалог и откройте его анализ · набор ' + esc(state.group || '—'),
+      var h = head('Диалоги', 'Выберите диалог и откройте его анализ · набор ' + esc(state.group || '—') + ' · чек-лист «' + esc(state.checklist.name) + '»',
         state.dialogs.length ? '<button class="btn" data-act="ck-apply"' + (pendingDialogs ? '' : ' disabled') + '>' + (pendingDialogs ? 'Оценить неоценённые · ' + pendingDialogs : 'Все диалоги оценены') + '</button>' : '');
       if (!state.dialogs.length) {
         return h + '<div class="dash"><p>Диалогов пока нет.</p><p>Загрузите JSON с диалогами — кнопка «Загрузить JSON» слева внизу. Для звонков в записи укажите audio_url.</p>' +
@@ -340,7 +349,7 @@
         '<p class="sum">' + (pend ? 'Для этой версии чек-листа нужна оценка. ' : '') +
         (diff ? 'Исходная оценка модели: <b>' + fmt(org.total) + '</b>. Итог пересчитан с учётом решений проверяющего. ' : !pend ? 'Первоначальные ответы модели сохранены. ' : '') +
         (naN ? 'Критерии с N/A (' + naN + ') не входят в итог: их вес перераспределён между остальными. ' : '') +
-        'Чек-лист v' + state.checklist.version + ', округление до ' + state.checklist.rounding + ' зн.</p></div>' +
+        'Чек-лист «' + esc(state.checklist.name) + '» v' + listVersion() + ', округление до ' + state.checklist.rounding + ' зн.</p></div>' +
         (gross ? '<p class="flag">⚑ Грубая ошибка зафиксирована. Флаг учитывается отдельно от балла.</p>' : '');
       state.checklist.sections.forEach(function (s) {
         var sr = rows.filter(function (x) { return x.c.section === s.id; });
@@ -407,63 +416,119 @@
       }).join('') + (items.length ? '' : '<div class="dash">Пока пусто — новые апелляции появятся здесь</div>') + '</div>';
     }
 
-    /* ---------- Чек-листы ---------- */
+    /* ---------- Чек-листы ----------
+       Каждый сохранённый вариант — неизменяемая версия на сервере; версии с одним названием образуют один чек-лист.
+       Стандарт (официальный чек-лист) нельзя менять и удалять — его можно скопировать. Сервер не удаляет версии,
+       поэтому «Удалить» скрывает чек-лист из списка в этом браузере (история оценок на сервере сохраняется). */
+    var LS_HIDDEN = 'cqa.hiddenChecklists', LS_RUBRIC = 'cqa.rubricId';
+    function lsGet(k, d) { try { var v = window.localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
+    function lsSet(k, v) { try { window.localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* хранилище недоступно */ } }
+    function hiddenNames() { return lsGet(LS_HIDDEN, []); }
+    function setHidden(name, hide) {
+      var h = hiddenNames().filter(function (n) { return n !== name; }); if (hide) h.push(name); lsSet(LS_HIDDEN, h);
+    }
+    function visibleLists() {
+      var h = hiddenNames();
+      return (state.checklists || []).filter(function (l) { return l.standard || h.indexOf(l.name) < 0; });
+    }
+    function standardList() { return (state.checklists || []).filter(function (l) { return l.standard; })[0]; }
+    /* номер версии внутри чек-листа (сервер нумерует все сохранения подряд) */
+    function listVersion() {
+      var l = (state.checklists || []).filter(function (x) { return x.name === state.checklist.name; })[0];
+      return l ? l.versions : state.checklist.version;
+    }
+    function isStandard() { var s = standardList(); return !state.newList && !!s && s.name === state.checklist.name; }
+
     function sig(cl) {
-      return JSON.stringify({ r: cl.rounding, c: cl.criteria.map(function (c) {
+      return JSON.stringify({ n: cl.name, r: cl.rounding, c: cl.criteria.map(function (c) {
         var o = {}; Object.keys(c).forEach(function (k) { if (k.charAt(0) !== '_') o[k] = c[k]; }); return o;
       }) });
     }
+    function isDirty() { return !!state.draft && (state.newList || sig(state.draft) !== sig(state.checklist)); }
     function weightSum() { return state.draft.criteria.reduce(function (a, x) { return a + (x.gross ? 0 : Number(x.weight) || 0); }, 0); }
     function updateDirty() {
-      var dirty = state.draft && sig(state.draft) !== sig(state.checklist);
+      var dirty = isDirty();
       ['ck-save', 'ck-reset'].forEach(function (act) { var b = root.querySelector('[data-act="' + act + '"]'); if (b) b.disabled = !dirty; });
       var w = root.querySelector('#cqa-wsum');
       if (w) { var s = Math.round(weightSum() * 100) / 100; w.textContent = 'Сумма весов: ' + String(s).replace('.', ','); w.className = 'tag ' + (s === 100 ? 'ok' : 'warn'); }
     }
+    function newCriterion(sectionId) {
+      return { id: 'c' + Date.now().toString(36) + Math.floor(Math.random() * 1e3), section: sectionId, title: 'Новый критерий', desc: '', weight: 10, type: 'binary', naAllowed: false, naRule: '' };
+    }
+    function sectionId(dr, title) {
+      title = String(title || '').trim() || 'Общее';
+      var s = dr.sections.filter(function (x) { return x.title === title; })[0];
+      if (!s) { s = { id: 's' + Date.now().toString(36) + dr.sections.length, title: title }; dr.sections.push(s); }
+      return s.id;
+    }
+
+    function listsHTML() {
+      var cur = state.newList ? null : state.checklist.name;
+      return '<div class="lists">' + visibleLists().map(function (l) {
+        var on = l.name === cur;
+        return '<div class="dl' + (on ? ' cur' : '') + '"><b>' + esc(l.name) + '<br><small>версия ' + l.versions + ' · критериев: ' + l.criteria + '</small></b>' +
+          (l.standard ? '<span class="tag">Стандарт</span>' : '') +
+          (on ? '<span class="tag ok">Используется для оценки</span>' : '<button class="btn line" type="button" data-act="list-select" data-id="' + esc(l.id) + '">Выбрать</button>') +
+          (l.standard ? '' : '<button class="chip" type="button" data-act="list-delete" data-name="' + esc(l.name) + '">Удалить</button>') + '</div>';
+      }).join('') + '</div>';
+    }
+
     function checklistView() {
       if (!state.draft) state.draft = clone(state.checklist);
-      var dr = state.draft, dirty = sig(dr) !== sig(state.checklist), sum = Math.round(weightSum() * 100) / 100, n = 0;
-      var body = state.checklist.sections.map(function (s) {
+      var dr = state.draft, dirty = isDirty(), locked = isStandard(), sum = Math.round(weightSum() * 100) / 100, n = 0;
+      var titles = dr.sections.map(function (s) { return '<option value="' + esc(s.title) + '"></option>'; }).join('');
+      var body = dr.sections.map(function (s) {
         var list = dr.criteria.map(function (c, i) { return { c: stepUI(c), i: i }; }).filter(function (x) { return x.c.section === s.id; });
         if (!list.length) return '';
         return '<h3 class="grp">' + esc(s.title) + '</h3>' + list.map(function (x) {
           var c = x.c, i = x.i, tv = c.gross ? 'gross' : c.type;
-          var secOpts = state.checklist.sections.map(function (o) { return '<option value="' + o.id + '"' + (c.section === o.id ? ' selected' : '') + '>' + esc(o.title) + '</option>'; }).join('');
           var steps = c.type === 'scale' ? c.steps.map(function (v, k) {
             return '<div class="st"><input class="in sc" value="' + v + '" inputmode="decimal" aria-label="Балл" data-ck="step" data-i="' + i + '" data-k="' + k + '">' +
               '<input class="in sd" value="' + esc(c._labels[v] || '') + '" placeholder="Описание ступени" aria-label="Описание ступени" data-ck="label" data-i="' + i + '" data-k="' + k + '">' +
               '<button class="chip" type="button" aria-label="Удалить ступень" data-act="step-del" data-i="' + i + '" data-k="' + k + '"' + (c.steps.length <= 2 ? ' disabled' : '') + '>×</button></div>';
           }).join('') + '<div class="st"><button class="chip" type="button" data-act="step-add" data-i="' + i + '">+ Ступень</button></div>' : '';
           return '<div class="cl"><div class="cf"><span class="num">' + pad(++n) + '</span>' +
-            '<input class="in n" value="' + esc(c.title) + '" aria-label="Название" data-ck="title" data-i="' + i + '">' +
+            '<input class="in n" value="' + esc(c.title) + '" aria-label="Название критерия" data-ck="title" data-i="' + i + '">' +
             '<label>Вес <input class="in w" type="number" min="0" max="100" step="any" value="' + (c.gross ? 0 : c.weight) + '"' + (c.gross ? ' disabled' : '') + ' data-ck="weight" data-i="' + i + '"></label>' +
             '<select class="in" aria-label="Тип ответа" data-ck="type" data-i="' + i + '"><option value="binary"' + (tv === 'binary' ? ' selected' : '') + '>Да / Нет</option><option value="scale"' + (tv === 'scale' ? ' selected' : '') + '>Шкала</option><option value="gross"' + (tv === 'gross' ? ' selected' : '') + '>Грубая ошибка</option></select>' +
             '<label><input type="checkbox"' + (c.naAllowed ? ' checked' : '') + (c.gross ? ' disabled' : '') + ' data-ck="na" data-i="' + i + '"> N/A</label>' +
             (c.gross ? '<span class="tag">Без баллов · отметка отдельно</span>' : '') +
             '<button class="chip" type="button" data-act="ck-del" data-i="' + i + '"' + (dr.criteria.length < 2 ? ' disabled' : '') + '>Удалить</button></div>' +
-            '<div class="cf sub"><label>Секция <select class="in" data-ck="section" data-i="' + i + '">' + secOpts + '</select></label><span class="mono">ID ' + esc(c.id) + '</span></div>' +
+            '<div class="cf sub"><label>Секция <input class="in" list="cqa-sections" value="' + esc(s.title) + '" data-ck="section" data-i="' + i + '" aria-label="Секция"></label></div>' +
             steps +
             '<textarea class="in" aria-label="Формулировка" placeholder="Правило оценки — его читает модель" data-ck="' + (c.type === 'scale' ? 'base' : 'desc') + '" data-i="' + i + '">' + esc(c.type === 'scale' ? c._base : c.desc || '') + '</textarea>' +
             (c.naAllowed ? '<span class="cap">Когда ставится N/A</span><textarea class="in na" aria-label="Условие N/A" placeholder="Когда ставится N/A (обязательно)" data-ck="naRule" data-i="' + i + '">' + esc(c.naRule || '') + '</textarea>' : '') +
             '</div>';
         }).join('');
       }).join('');
-      return head('Чек-листы', esc(state.checklist.name || 'Чек-лист') + ' · версия ' + state.checklist.version + ' · критериев: ' + dr.criteria.length + (dirty ? ' · есть несохранённые правки' : ''),
-        '') +
-        '<div id="clist"><div class="tools bar"><span id="cqa-wsum" class="tag ' + (sum === 100 ? 'ok' : 'warn') + '">Сумма весов: ' + String(sum).replace('.', ',') + '</span>' +
-        '<label class="chk">Округление <select class="in" data-ck="rounding"><option value="0"' + (dr.rounding === 0 ? ' selected' : '') + '>до целых</option><option value="1"' + (dr.rounding === 1 ? ' selected' : '') + '>до десятых</option><option value="2"' + (dr.rounding === 2 ? ' selected' : '') + '>до сотых</option></select></label>' +
-        '<button class="btn line" type="button" data-act="ck-add">+ Критерий</button>' +
-        '<button class="btn line" type="button" data-act="ck-reset"' + (dirty ? '' : ' disabled') + '>Отменить правки</button>' +
-        '<button class="btn" type="button" data-act="ck-save"' + (dirty ? '' : ' disabled') + '>Сохранить чек-лист</button>' +
-        '<button class="btn line" type="button" data-act="ck-apply">Применить к диалогам</button></div>' +
-        body +
+      var sub = state.newList ? 'Новый чек-лист · ещё не сохранён · критериев: ' + dr.criteria.length
+        : esc(state.checklist.name) + ' · версия ' + listVersion() + ' · критериев: ' + dr.criteria.length + (dirty ? ' · есть несохранённые правки' : '');
+      return head('Чек-листы', sub,
+          '<button class="btn" type="button" data-act="list-new">+ Новый с нуля</button>' +
+          '<button class="btn line" type="button" data-act="list-copy"' + (state.newList ? ' disabled' : '') + '>Копия выбранного</button>') +
+        listsHTML() +
+        '<div id="clist"><div class="tools bar">' +
+        '<label class="chk name">Название <input class="in" id="cqa-cl-name" data-ck="name" value="' + esc(dr.name || '') + '" placeholder="Название чек-листа"' + (locked ? ' disabled' : '') + '></label>' +
+        '<span id="cqa-wsum" class="tag ' + (sum === 100 ? 'ok' : 'warn') + '">Сумма весов: ' + String(sum).replace('.', ',') + '</span>' +
+        '<label class="chk">Округление <select class="in" data-ck="rounding"' + (locked ? ' disabled' : '') + '><option value="0"' + (dr.rounding === 0 ? ' selected' : '') + '>до целых</option><option value="1"' + (dr.rounding === 1 ? ' selected' : '') + '>до десятых</option><option value="2"' + (dr.rounding === 2 ? ' selected' : '') + '>до сотых</option></select></label>' +
+        '<button class="btn line" type="button" data-act="ck-add"' + (locked ? ' disabled' : '') + '>+ Критерий</button>' +
+        '<button class="btn line" type="button" data-act="ck-reset"' + (dirty ? '' : ' disabled') + '>' + (state.newList ? 'Отменить создание' : 'Отменить правки') + '</button>' +
+        '<button class="btn" type="button" data-act="ck-save"' + (dirty ? '' : ' disabled') + '>' + (state.newList ? 'Создать чек-лист' : 'Сохранить чек-лист') + '</button>' +
+        '<button class="btn line" type="button" data-act="ck-apply"' + (state.newList ? ' disabled' : '') + '>Применить к диалогам</button></div>' +
+        (locked ? '<p class="note">Это стандарт — он защищён от изменений. Нажмите «Копия выбранного», чтобы сделать свой вариант на его основе, или «Новый с нуля».</p>' : '') +
+        '<datalist id="cqa-sections">' + titles + '</datalist>' +
+        '<fieldset class="fs"' + (locked ? ' disabled' : '') + '>' + (body || '<div class="dash">Критериев пока нет — нажмите «+ Критерий».</div>') + '</fieldset>' +
         '<div class="card calc"><h3>Порядок расчёта</h3><p>1. N/A ставится только там, где он разрешён и выполнено условие. 2. «Да» даёт полный вес, «Нет» — ноль, для шкалы выбирается одна из ступеней. ' +
         '3. Шкальные баллы пересчитываются пропорционально весу: верхняя ступень даёт полный вес. 4. Критерии с N/A исключаются, их вес перераспределяется между применимыми, максимум остаётся 100. ' +
         '5. Итог округляется по настройке; грубые ошибки отмечаются отдельно.</p>' +
-        '<p class="small">Сохранение создаёт новую версию. Критерии с изменённым названием, правилом, типом или шкалой ждут новой оценки; «Применить к диалогам» запускает её (один запрос к модели на диалог).</p></div></div>';
+        '<p class="small">ИИ оценивает диалоги по выбранному чек-листу. Сохранение создаёт новую версию; «Применить к диалогам» запускает оценку по ней (один запрос к модели на диалог). «Удалить» скрывает чек-лист из списка в этом браузере, история оценок на сервере сохраняется.</p></div></div>';
     }
     function validateDraft() {
-      var dr = state.draft, i, c;
+      var dr = state.draft, i, c, name = String(dr.name || '').trim();
+      if (!name) return 'Укажите название чек-листа';
+      var renamed = state.newList || name !== state.checklist.name;
+      if (renamed && visibleLists().some(function (l) { return l.name === name; })) return 'Чек-лист «' + name + '» уже есть — выберите другое название';
+      if (!dr.criteria.length) return 'Добавьте хотя бы один критерий';
       for (i = 0; i < dr.criteria.length; i++) {
         c = dr.criteria[i];
         if (!String(c.title).trim()) return 'У критерия №' + (i + 1) + ' нет названия';
@@ -682,8 +747,9 @@
         var pending = rowsFor(d).filter(function (x) { return x.pending; }).map(function (x) { return x.c.id; });
         runEval(d, pending.length ? pending : state.checklist.criteria.map(function (c) { return c.id; }));
       } else if (a === 'ck-add') {
-        var sec = state.draft.criteria.length ? state.draft.criteria[state.draft.criteria.length - 1].section : state.checklist.sections[0].id;
-        state.draft.criteria.push({ id: 'c' + Date.now().toString(36), section: sec, title: 'Новый критерий', desc: '', weight: 5, type: 'binary', naAllowed: false, naRule: '' });
+        var dr0 = state.draft;
+        var sec = dr0.criteria.length ? dr0.criteria[dr0.criteria.length - 1].section : sectionId(dr0, dr0.sections[0] ? dr0.sections[0].title : 'Общее');
+        dr0.criteria.push(newCriterion(sec));
         render();
         var cls = root.querySelectorAll('.cl'); if (cls.length) { cls[cls.length - 1].scrollIntoView({ block: 'center' }); cls[cls.length - 1].querySelector('.n').select(); }
       } else if (a === 'ck-del') {
@@ -694,19 +760,48 @@
         else { var gone = sc.steps.splice(Number(el.getAttribute('data-k')), 1)[0]; delete sc._labels[gone]; sc.desc = joinSteps(sc); }
         render();
       } else if (a === 'ck-reset') {
-        state.draft = clone(state.checklist); render();
+        state.newList = false; state.draft = clone(state.checklist); render();
       } else if (a === 'ck-save') {
         var err = validateDraft();
         if (err) { toast(err); return; }
         el.disabled = true;
+        var created = state.newList, oldName = state.checklist.name;
+        state.draft.name = String(state.draft.name).trim();
         api('PUT', '/api/checklist', state.draft).then(function (cl) {
-          state.checklist = cl; state.draft = clone(cl); state.results = {}; state.appeals = {};
+          state.checklists = cl.checklists || state.checklists; delete cl.checklists;
+          setHidden(cl.name, false);
+          if (!created && cl.name !== oldName && !(standardList() && standardList().name === oldName)) setHidden(oldName, true);  /* переименование */
+          lsSet(LS_RUBRIC, cl.id);
+          state.checklist = cl; state.draft = clone(cl); state.newList = false; state.results = {}; state.appeals = {};
           state.dialogs.forEach(function (dialog) { delete dialog.grossAI; delete dialog.grossFinal; });
-          toast('Чек-лист сохранён, версия ' + cl.version + '. Нажмите «Применить к диалогам», чтобы оценить по новой версии.'); render();
+          toast((created ? 'Чек-лист «' + cl.name + '» создан и выбран для оценки' : 'Чек-лист сохранён, версия ' + cl.version) + '. Нажмите «Применить к диалогам», чтобы оценить по нему.'); render();
         }).catch(function (e2) { toast('Ошибка: ' + e2.message); render(); });
       } else if (a === 'ck-apply') {
-        if (state.view === 'checklist' && state.draft && sig(state.draft) !== sig(state.checklist)) { toast('Сначала сохраните чек-лист.'); return; }
+        if (state.view === 'checklist' && isDirty()) { toast('Сначала сохраните чек-лист.'); return; }
         applyAll();
+      } else if (a === 'list-select') {
+        if (isDirty() && !window.confirm('Несохранённые правки чек-листа пропадут. Продолжить?')) return;
+        load(state.group, el.getAttribute('data-id'));
+      } else if (a === 'list-delete') {
+        var nm = el.getAttribute('data-name');
+        if (!window.confirm('Убрать чек-лист «' + nm + '» из списка? Оценки по нему останутся в истории на сервере.')) return;
+        setHidden(nm, true);
+        if (nm === state.checklist.name && standardList()) { toast('Чек-лист «' + nm + '» удалён из списка. Выбран стандарт.'); load(state.group, standardList().id); }
+        else { toast('Чек-лист «' + nm + '» удалён из списка.'); render(); }
+      } else if (a === 'list-new' || a === 'list-copy') {
+        if (isDirty() && !window.confirm('Несохранённые правки чек-листа пропадут. Продолжить?')) return;
+        var base = clone(state.checklist);
+        if (a === 'list-new') {
+          base.sections = [{ id: 's1', title: 'Общее' }];
+          base.criteria = [newCriterion('s1')];
+          base.name = '';
+        } else {
+          base.name = state.checklist.name + ' (копия)';
+          base.criteria.forEach(function (c) { delete c._labels; delete c._base; });
+        }
+        delete base.id; delete base.version;
+        state.newList = true; state.draft = base; render();
+        var nameInput = root.querySelector('#cqa-cl-name'); if (nameInput) { nameInput.focus(); nameInput.select(); }
       }
     });
 
@@ -723,6 +818,7 @@
       if (t.getAttribute('data-draft')) { state.drafts[t.getAttribute('data-draft')] = t.value; return; }
       var f = t.getAttribute('data-ck');
       if (!f || !state.draft || f === 'rounding' || f === 'type' || f === 'section' || f === 'na') return;
+      if (f === 'name') { state.draft.name = t.value; updateDirty(); return; }
       var c = state.draft.criteria[Number(t.getAttribute('data-i'))];
       if (f === 'title') c.title = t.value;
       if (f === 'desc') c.desc = t.value;
@@ -749,7 +845,8 @@
         try { payload = JSON.parse(text); } catch (err) { throw new Error('Файл не является корректным JSON.'); }
         return api('POST', '/api/import-json', { payload: payload });
       }).then(function (data) {
-        state.group = data.group; state.groups = data.groups || []; state.checklist = data.checklist; state.draft = null; state.jobs = data.jobs || [];
+        state.group = data.group; state.groups = data.groups || []; state.checklist = data.checklist; state.checklists = data.checklists || state.checklists;
+        state.draft = null; state.newList = false; state.jobs = data.jobs || [];
         state.results = data.results || {}; state.appeals = data.appeals || {}; replaceDialogs(data.dialogs);
         if (!dlg(state.did)) { state.did = state.dialogs.length ? state.dialogs[0].id : null; setAudio(dlg(state.did)); }
         state.view = 'dialogs';
@@ -769,9 +866,14 @@
       var f = t.getAttribute('data-ck');
       if (!f) return;
       if (f === 'rounding') { state.draft.rounding = Number(t.value); render(); return; }
+      if (f === 'name') return;
       var c = state.draft.criteria[Number(t.getAttribute('data-i'))];
       if (f === 'step') { c.steps.sort(function (x, y) { return y - x; }); render(); return; }
-      if (f === 'section') c.section = t.value;
+      if (f === 'section') {  /* секция по названию: новая создаётся, пустые не попадают в сохранённый чек-лист */
+        c.section = sectionId(state.draft, t.value);
+        var used = state.draft.criteria.map(function (x) { return x.section; });
+        state.draft.sections = state.draft.sections.filter(function (s) { return used.indexOf(s.id) >= 0; });
+      }
       if (f === 'type') {
         if (t.value === 'gross') { c.type = 'binary'; c.gross = true; c.weight = 0; c.naAllowed = false; c.naRule = ''; if (c._base != null) c.desc = c._base; delete c.steps; delete c._labels; delete c._base; }
         else {
