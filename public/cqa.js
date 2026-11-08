@@ -247,7 +247,7 @@
         '<select class="in" data-filter="language" aria-label="Язык">' + [['', 'Все языки'], ['RU', 'Русский'], ['KZ', 'Қазақша'], ['EN', 'English']].map(function (p) {
           return '<option value="' + p[0] + '"' + (state.filter.language === p[0] ? ' selected' : '') + '>' + p[1] + '</option>';
         }).join('') + '</select>' +
-        '<label class="chk"><input type="checkbox" data-filter="gross"' + (state.filter.gross ? ' checked' : '') + '> Грубые ошибки AI</label>' +
+        '<label class="chk"><input type="checkbox" data-filter="gross"' + (state.filter.gross ? ' checked' : '') + '> Грубые ошибки</label>' +
         '<span class="cnt">Показано ' + shown.length + ' из ' + state.dialogs.length + '</span></div>';
       if (!shown.length) return h + '<div class="dash">По выбранным фильтрам диалоги не найдены. Неоценённые диалоги не считаются проверенными.</div>';
       return h + '<div id="dlist">' + shown.map(function (d) {
