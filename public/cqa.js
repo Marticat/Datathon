@@ -532,12 +532,13 @@
         '<span id="cqa-wsum" class="tag ' + (sum === 100 ? 'ok' : 'warn') + '">Сумма весов: ' + String(sum).replace('.', ',') + '</span>' +
         '<label class="chk">Округление <select class="in" data-ck="rounding"' + (locked ? ' disabled' : '') + '><option value="0"' + (dr.rounding === 0 ? ' selected' : '') + '>до целых</option><option value="1"' + (dr.rounding === 1 ? ' selected' : '') + '>до десятых</option><option value="2"' + (dr.rounding === 2 ? ' selected' : '') + '>до сотых</option></select></label>' +
         '<button class="btn line" type="button" data-act="ck-add"' + (locked ? ' disabled' : '') + '>+ Критерий</button>' +
-        '<button class="btn line" type="button" data-act="ck-reset"' + (dirty ? '' : ' disabled') + '>' + (state.newList ? 'Отменить создание' : 'Отменить правки') + '</button>' +
-        '<button class="btn" type="button" data-act="ck-save"' + (dirty ? '' : ' disabled') + '>' + (state.newList ? 'Создать чек-лист' : 'Сохранить чек-лист') + '</button>' +
         '<button class="btn line" type="button" data-act="ck-apply"' + (state.newList ? ' disabled' : '') + '>Применить к диалогам</button></div>' +
         (locked ? '<p class="note">Это стандарт, он защищён от изменений. Чтобы сделать свой вариант на его основе, откройте «Список чек-листов» и нажмите «Копия выбранного». Или создайте «Новый с нуля».</p>' : '') +
         '<datalist id="cqa-sections">' + titles + '</datalist>' +
-        '<fieldset class="fs"' + (locked ? ' disabled' : '') + '>' + (body || '<div class="dash">Критериев пока нет. Нажмите «+ Критерий».</div>') + '</fieldset>' +
+        '<fieldset class="fs"' + (locked ? ' disabled' : '') + '>' + (body || '<div class="dash">Критериев пока нет. Нажмите «+ Критерий».</div>') +
+        '<div class="tools fs-act">' +
+        '<button class="btn line" type="button" data-act="ck-reset"' + (dirty ? '' : ' disabled') + '>' + (state.newList ? 'Отменить создание' : 'Отменить правки') + '</button>' +
+        '<button class="btn" type="button" data-act="ck-save"' + (dirty ? '' : ' disabled') + '>' + (state.newList ? 'Создать чек-лист' : 'Сохранить чек-лист') + '</button></div></fieldset>' +
         '<div class="card calc"><h3>Порядок расчёта</h3><p>1. N/A ставится только там, где он разрешён и выполнено условие. 2. «Да» даёт полный вес, «Нет» даёт ноль, для шкалы выбирается одна из ступеней. ' +
         '3. Шкальные баллы пересчитываются пропорционально весу: верхняя ступень даёт полный вес. 4. Критерии с N/A исключаются, их вес перераспределяется между применимыми, максимум остаётся 100. ' +
         '5. Итог округляется по настройке; грубые ошибки отмечаются отдельно.</p>' +

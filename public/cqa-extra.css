@@ -132,3 +132,6 @@ body:has(> [data-cqa]) { margin: 0; background: #f7f7f4; }
 /* стрелка раскрытия: уголок из рамки, ровно по центру строки */
 .cqa .cr-t .chev { width: 8px; height: 8px; flex: none; margin: 0 3px 3px 4px; border-right: 2px solid var(--mut); border-bottom: 2px solid var(--mut); transform: rotate(45deg); }
 .cqa .cr.open .cr-t .chev { transform: rotate(225deg); margin: 3px 3px 0 4px; }
+
+/* действия чек-листа внутри fieldset: под списком критериев, прилипают к низу экрана */
+.cqa .fs-act { justify-content: flex-end; position: sticky; bottom: 0; z-index: 3; margin-top: 12px; padding: 10px 0; background: var(--bg); border-top: 1px solid var(--line); }
