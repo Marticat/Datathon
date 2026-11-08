@@ -99,6 +99,7 @@
     function load(group, rubricId) {
       var first = !state.checklist, keep = state.did;
       rubricId = rubricId || lsGet(LS_RUBRIC, '');
+      group = group || lsGet(LS_GROUP, '');  /* последний выбранный набор данных */
       state.loading = true; state.loadErr = ''; state.playing = false; setAudio(null); render();
       return api('GET', '/api/bootstrap?group=' + encodeURIComponent(group || '') + (rubricId ? '&rubricId=' + encodeURIComponent(rubricId) : '')).then(function (data) {
         state.checklists = data.checklists || [];
@@ -106,7 +107,7 @@
         if (hiddenNames().indexOf(data.checklist.name) >= 0 && standardList() && standardList().id !== data.checklist.id) {
           lsSet(LS_RUBRIC, standardList().id); return load(group, standardList().id);
         }
-        lsSet(LS_RUBRIC, data.checklist.id);
+        lsSet(LS_RUBRIC, data.checklist.id); lsSet(LS_GROUP, data.group);
         state.group = data.group; state.groups = data.groups || []; state.checklist = data.checklist; state.draft = null; state.newList = false; state.jobs = data.jobs || [];
         state.dialogs = data.dialogs.map(prep); state.results = data.results || {}; state.appeals = data.appeals || {};
         var wanted = first && state.dialogs.some(function (d) { return d.id === opts.dialog; });
@@ -423,7 +424,7 @@
        Каждый сохранённый вариант: неизменяемая версия на сервере; версии с одним названием образуют один чек-лист.
        Стандарт (официальный чек-лист) нельзя менять и удалять, его можно скопировать. Сервер не удаляет версии,
        поэтому «Удалить» скрывает чек-лист из списка в этом браузере (история оценок на сервере сохраняется). */
-    var LS_HIDDEN = 'cqa.hiddenChecklists', LS_RUBRIC = 'cqa.rubricId';
+    var LS_HIDDEN = 'cqa.hiddenChecklists', LS_RUBRIC = 'cqa.rubricId', LS_GROUP = 'cqa.group';
     function lsGet(k, d) { try { var v = window.localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
     function lsSet(k, v) { try { window.localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* хранилище недоступно */ } }
     function hiddenNames() { return lsGet(LS_HIDDEN, []); }
@@ -911,7 +912,7 @@
         try { payload = JSON.parse(text); } catch (err) { throw new Error('Файл не является корректным JSON.'); }
         return api('POST', '/api/import-json', { payload: payload });
       }).then(function (data) {
-        state.group = data.group; state.groups = data.groups || []; state.checklist = data.checklist; state.checklists = data.checklists || state.checklists;
+        state.group = data.group; lsSet(LS_GROUP, data.group); state.groups = data.groups || []; state.checklist = data.checklist; state.checklists = data.checklists || state.checklists;
         state.draft = null; state.newList = false; state.jobs = data.jobs || [];
         state.results = data.results || {}; state.appeals = data.appeals || {}; replaceDialogs(data.dialogs);
         if (!dlg(state.did)) { state.did = state.dialogs.length ? state.dialogs[0].id : null; setAudio(dlg(state.did)); }
