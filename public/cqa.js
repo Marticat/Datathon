@@ -476,6 +476,7 @@
             '<button class="btn line" type="button" data-act="list-delete-no">Отмена</button></div>';
         }
         return row + (on && !state.newList ? '<span class="tag ok">Выбран для оценки</span>' : '<button class="btn" type="button" data-act="list-select" data-id="' + esc(l.id) + '">Выбрать</button>') +
+          (!l.standard && on && !state.newList ? '<button class="chip" type="button" data-act="list-rename">Переименовать</button>' : '') +
           (l.standard ? '' : '<button class="chip" type="button" data-act="list-delete" data-name="' + esc(l.name) + '">Удалить</button>') + '</div>';
       }).join('');
       return '<div class="ov on"><button class="ov-bg" type="button" data-act="lists-close" aria-label="Закрыть"></button>' +
@@ -515,14 +516,13 @@
             '</div>';
         }).join('');
       }).join('');
-      var sub = state.newList ? 'Новый чек-лист · ещё не сохранён · критериев: ' + dr.criteria.length
+      var sub = state.newList ? esc(dr.name) + ' · новый, ещё не сохранён · критериев: ' + dr.criteria.length
         : esc(state.checklist.name) + ' · версия ' + listVersion() + ' · критериев: ' + dr.criteria.length + (dirty ? ' · есть несохранённые правки' : '');
       return head('Чек-листы', sub,
           '<button class="btn" type="button" data-act="lists-open">Список чек-листов</button>' +
           '<button class="btn line" type="button" data-act="list-new">+ Новый с нуля</button>' +
           '<button class="btn line" type="button" data-act="list-copy">Копия выбранного</button>') +
         '<div id="clist"><div class="tools bar">' +
-        '<label class="chk name">Название <input class="in" id="cqa-cl-name" data-ck="name" value="' + esc(dr.name || '') + '" placeholder="Название чек-листа"' + (locked ? ' disabled' : '') + '></label>' +
         '<span id="cqa-wsum" class="tag ' + (sum === 100 ? 'ok' : 'warn') + '">Сумма весов: ' + String(sum).replace('.', ',') + '</span>' +
         '<label class="chk">Округление <select class="in" data-ck="rounding"' + (locked ? ' disabled' : '') + '><option value="0"' + (dr.rounding === 0 ? ' selected' : '') + '>до целых</option><option value="1"' + (dr.rounding === 1 ? ' selected' : '') + '>до десятых</option><option value="2"' + (dr.rounding === 2 ? ' selected' : '') + '>до сотых</option></select></label>' +
         '<button class="btn line" type="button" data-act="ck-add"' + (locked ? ' disabled' : '') + '>+ Критерий</button>' +
@@ -587,7 +587,7 @@
     function render() {
       var scroll = window.scrollY;
       root.classList.add('cqa');
-      root.innerHTML = '<div class="shell">' + sideHTML() + '<main class="main">' + bodyHTML() + '</main></div>' + modalHTML() + listsModalHTML() +
+      root.innerHTML = '<div class="shell">' + sideHTML() + '<main class="main">' + bodyHTML() + '</main></div>' + modalHTML() + listsModalHTML() + nameModalHTML() +
         (state.toast ? '<div class="toast" role="status">' + esc(state.toast) + '</div>' : '');
       window.scrollTo(0, scroll);
       post();
@@ -607,6 +607,8 @@
       Array.prototype.forEach.call(root.querySelectorAll('.ring[data-p]'), function (el) { el.style.setProperty('--p', el.getAttribute('data-p')); });
       applyHL();
       updatePlayer();
+      var nameIn = root.querySelector('#cqa-name-in');
+      if (nameIn && document.activeElement !== nameIn) { nameIn.focus(); nameIn.select(); }
       var modal = root.querySelector('#cqa-ap-text');
       if (modal && document.activeElement === document.body) modal.focus();
       if (state.focus) {
@@ -684,6 +686,57 @@
         replaceDialogs(data.dialogs); state.results = data.results; state.appeals = data.appeals;
         toast('Проверка завершена. Диалогов: ' + jobs.length + ', ошибок: ' + data.errors.length + '.');
       }).catch(function (error) { toast(error.message); }).finally(function () { state.busy = false; render(); });
+    }
+
+
+    /* ---------- сохранение и название чек-листа ---------- */
+    function saveDraft() {
+      var err = validateDraft();
+      if (err) { toast(err); render(); return; }
+      var created = state.newList, oldName = state.checklist.name;
+      state.draft.name = String(state.draft.name).trim();
+      api('PUT', '/api/checklist', state.draft).then(function (cl) {
+        state.checklists = cl.checklists || state.checklists; delete cl.checklists;
+        setHidden(cl.name, false);
+        if (!created && cl.name !== oldName && !(standardList() && standardList().name === oldName)) setHidden(oldName, true);  /* переименование */
+        lsSet(LS_RUBRIC, cl.id);
+        state.checklist = cl; state.draft = clone(cl); state.newList = false; state.results = {}; state.appeals = {};
+        state.dialogs.forEach(function (dialog) { delete dialog.grossAI; delete dialog.grossFinal; });
+        toast(created ? 'Чек-лист «' + cl.name + '» создан и выбран для оценки. Нажмите «Применить к диалогам», чтобы оценить по нему.'
+          : cl.name !== oldName ? 'Чек-лист переименован в «' + cl.name + '».' : 'Чек-лист сохранён. Нажмите «Применить к диалогам», чтобы оценить по нему.');
+        render();
+      }).catch(function (e2) { toast('Ошибка: ' + e2.message); render(); });
+    }
+    /* новый чек-лист с нуля или копия выбранного, сразу с названием */
+    function startDraft(mode, name) {
+      var base = clone(state.checklist);
+      if (mode === 'new') { base.sections = [{ id: 's1', title: 'Общее' }]; base.criteria = [newCriterion('s1')]; }
+      else base.criteria.forEach(function (c) { delete c._labels; delete c._base; });
+      base.name = name; delete base.id; delete base.version;
+      state.newList = true; state.draft = base; render();
+    }
+    function nameOk() {
+      var dlgState = state.nameDlg; if (!dlgState) return;
+      var name = String(dlgState.value || '').trim();
+      var taken = visibleLists().some(function (l) { return l.name === name && !(dlgState.mode === 'rename' && name === state.checklist.name); });
+      dlgState.err = !name ? 'Укажите название' : taken ? 'Такое название уже есть' : '';
+      if (dlgState.err) { render(); return; }
+      state.nameDlg = null;
+      if (dlgState.mode === 'rename') {
+        if (name === state.checklist.name) { render(); return; }
+        if (!state.draft) state.draft = clone(state.checklist);
+        state.draft.name = name; saveDraft();
+      } else startDraft(dlgState.mode, name);
+    }
+    function nameModalHTML() {
+      var n = state.nameDlg; if (!n) return '';
+      var title = n.mode === 'rename' ? 'Переименовать чек-лист' : n.mode === 'copy' ? 'Копия чек-листа' : 'Новый чек-лист';
+      return '<div class="ov on"><button class="ov-bg" type="button" data-act="name-cancel" aria-label="Закрыть"></button>' +
+        '<div class="mdl" role="dialog" aria-modal="true" aria-labelledby="cqa-nt"><h3 id="cqa-nt">' + title + '</h3>' +
+        '<p>' + (n.mode === 'new' ? 'Начнём с пустого чек-листа: критерии и секции добавите сами.' : n.mode === 'copy' ? 'Копия «' + esc(state.checklist.name) + '» со всеми критериями, её можно менять.' : 'Сохранится под новым названием, оценки по старому останутся в истории.') + '</p>' +
+        '<label class="sr" for="cqa-name-in">Название</label><input id="cqa-name-in" class="in s" data-ck="name" value="' + esc(n.value) + '" placeholder="Название чек-листа" maxlength="200">' +
+        (n.err ? '<p class="err">' + esc(n.err) + '</p>' : '') +
+        '<div class="row"><button class="btn line" type="button" data-act="name-cancel">Отмена</button><button class="btn" type="button" data-act="name-ok">' + (n.mode === 'rename' ? 'Переименовать' : 'Создать') + '</button></div></div></div>';
     }
 
     /* ================================================================ события */
@@ -776,20 +829,13 @@
       } else if (a === 'ck-reset') {
         state.newList = false; state.draft = clone(state.checklist); render();
       } else if (a === 'ck-save') {
-        var err = validateDraft();
-        if (err) { toast(err); return; }
-        el.disabled = true;
-        var created = state.newList, oldName = state.checklist.name;
-        state.draft.name = String(state.draft.name).trim();
-        api('PUT', '/api/checklist', state.draft).then(function (cl) {
-          state.checklists = cl.checklists || state.checklists; delete cl.checklists;
-          setHidden(cl.name, false);
-          if (!created && cl.name !== oldName && !(standardList() && standardList().name === oldName)) setHidden(oldName, true);  /* переименование */
-          lsSet(LS_RUBRIC, cl.id);
-          state.checklist = cl; state.draft = clone(cl); state.newList = false; state.results = {}; state.appeals = {};
-          state.dialogs.forEach(function (dialog) { delete dialog.grossAI; delete dialog.grossFinal; });
-          toast((created ? 'Чек-лист «' + cl.name + '» создан и выбран для оценки' : 'Чек-лист сохранён, версия ' + cl.version) + '. Нажмите «Применить к диалогам», чтобы оценить по нему.'); render();
-        }).catch(function (e2) { toast('Ошибка: ' + e2.message); render(); });
+        el.disabled = true; saveDraft();
+      } else if (a === 'name-cancel') {
+        state.nameDlg = null; render();
+      } else if (a === 'name-ok') {
+        nameOk();
+      } else if (a === 'list-rename') {
+        state.listsOpen = false; state.nameDlg = { mode: 'rename', value: state.checklist.name, err: '' }; render();
       } else if (a === 'ck-apply') {
         if (state.view === 'checklist' && isDirty()) { toast('Сначала сохраните чек-лист.'); return; }
         applyAll();
@@ -818,23 +864,13 @@
         else { toast('Чек-лист «' + nm + '» удалён из списка.'); render(); }
       } else if (a === 'list-new' || a === 'list-copy') {
         state.listsOpen = false; state.listsConfirm = null;
-        var base = clone(state.checklist);
-        if (a === 'list-new') {
-          base.sections = [{ id: 's1', title: 'Общее' }];
-          base.criteria = [newCriterion('s1')];
-          base.name = '';
-        } else {
-          base.name = state.checklist.name + ' (копия)';
-          base.criteria.forEach(function (c) { delete c._labels; delete c._base; });
-        }
-        delete base.id; delete base.version;
-        state.newList = true; state.draft = base; render();
-        var nameInput = root.querySelector('#cqa-cl-name'); if (nameInput) { nameInput.focus(); nameInput.select(); }
+        state.nameDlg = { mode: a === 'list-new' ? 'new' : 'copy', value: a === 'list-new' ? '' : state.checklist.name + ' (копия)', err: '' }; render();
       }
     });
 
     root.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && (state.form || state.listsOpen)) { state.form = null; state.listsOpen = false; state.listsConfirm = null; render(); }
+      if (e.key === 'Escape' && (state.form || state.listsOpen || state.nameDlg)) { state.form = null; state.listsOpen = false; state.listsConfirm = null; state.nameDlg = null; render(); }
+      if (e.key === 'Enter' && e.target.id === 'cqa-name-in') { e.preventDefault(); nameOk(); }
     });
 
     root.addEventListener('input', function (e) {
@@ -846,7 +882,7 @@
       if (t.getAttribute('data-draft')) { state.drafts[t.getAttribute('data-draft')] = t.value; return; }
       var f = t.getAttribute('data-ck');
       if (!f || !state.draft || f === 'rounding' || f === 'type' || f === 'section' || f === 'na') return;
-      if (f === 'name') { state.draft.name = t.value; updateDirty(); return; }
+      if (f === 'name') { if (state.nameDlg) state.nameDlg.value = t.value; return; }
       var c = state.draft.criteria[Number(t.getAttribute('data-i'))];
       if (f === 'title') c.title = t.value;
       if (f === 'desc') c.desc = t.value;
