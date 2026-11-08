@@ -30,18 +30,34 @@ export function toBootstrap(state,group,rubricId) {
   }
   for(const a of state.appeals.filter(a=>a.evaluationId===e.id)){const original=e.answers.find(x=>x.criterionId===a.criterionId)?.answer;appeals[c.conversation_id+'|'+a.criterionId]={id:a.id,evaluationId:e.id,comment:a.comment,at:a.createdAt,dec:a.decision?{v:value(a.decision.answer),reason:a.decision.reason,at:a.decision.createdAt,kind:a.decision.answer===original?'confirmed':'changed'}:null};}
  }
- return {group,groups:[...new Set(state.conversations.map(c=>c.groupId))].sort(),checklist,dialogs,results,appeals,evaluations,jobs:state.jobs.filter(j=>['queued','running'].includes(j.status)),rubricId:rubric.id};
+ return {group,groups:[...new Set(state.conversations.map(c=>c.groupId))].sort(),checklist,checklists:listChecklists(state.rubrics),dialogs,results,appeals,evaluations,jobs:state.jobs.filter(j=>['queued','running'].includes(j.status)),rubricId:rubric.id};
 }
-export function createArchiveApi({fetcher=fetch,pause=ms=>new Promise(r=>setTimeout(r,ms)),onProgress=()=>{}}={}) {
- let current=null;
- async function request(path,body){const response=await fetcher(path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw Error(data.error||`HTTP ${response.status}`);return data;}
+// Named checklists: every saved rubric is an immutable version; versions that share a name form one checklist.
+// The lineage of the shipped default rubric is the protected standard.
+export const STANDARD_RUBRIC_ID='rubric-default-v1';
+export function listChecklists(rubrics){
+ const standard=(rubrics.find(r=>r.id===STANDARD_RUBRIC_ID)||rubrics[0])?.name;const byName=new Map();
+ for(const r of rubrics){const item=byName.get(r.name)||{name:r.name,versions:0,standard:r.name===standard};item.versions++;Object.assign(item,{id:r.id,version:r.version,createdAt:r.createdAt,criteria:r.criteria.length});byName.set(r.name,item);}
+ return [...byName.values()].sort((a,b)=>(b.standard-a.standard)||String(b.createdAt).localeCompare(String(a.createdAt)));
+}
+// base: where the CQA server lives ('' = same origin). Set it when the UI is hosted elsewhere, e.g. a Dynamics 365 web resource.
+export function createArchiveApi({fetcher=fetch,pause=ms=>new Promise(r=>setTimeout(r,ms)),onProgress=()=>{},base=''}={}) {
+ let current=null;base=String(base||'').replace(/\/+$/,'');
+ async function request(path,body){const response=await fetcher(base+path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw Error(data.error||`HTTP ${response.status}`);return data;}
  async function refresh(){return current=toBootstrap(await request('/api/state'),current.group,current.rubricId);}
  return async function api(method,path,body){
   if(path.startsWith('/api/bootstrap')){const params=new URL(path,'http://localhost').searchParams;const input=params.get('group');let state=await request('/api/state');const group=input||state.conversations[0]?.groupId||'DEV';
    if(input&&!state.conversations.some(c=>c.groupId===group)){await request('/api/import',{groupId:group});state=await request('/api/state');}
    return current=toBootstrap(state,group,params.get('rubricId'));
   }
-  if(path==='/api/checklist'){const rubric=await request('/api/rubrics',toRubric(body));current.rubricId=rubric.id;await refresh();return current.checklist;}
+  if(path==='/api/import-json'){
+   // Organizer-format JSON or a records array; voice calls carry audio_url, which the player uses.
+   const payload=body.payload,groupId=String(payload?.data?.dataset_group_id||body.group||'UPLOAD').slice(0,100);
+   const result=await request('/api/import',{payload,groupId});
+   current=toBootstrap(await request('/api/state'),groupId,current?.rubricId);
+   return {...current,imported:result.imported};
+  }
+  if(path==='/api/checklist'){const rubric=await request('/api/rubrics',toRubric(body));current.rubricId=rubric.id;await refresh();return {...current.checklist,checklists:current.checklists};}
   if(path==='/api/evaluate'||path==='/api/batch'){
    const batch=path==='/api/batch';
    const rubricId=current.rubricId,group=current.group;let state=await request('/api/state');

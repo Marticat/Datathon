@@ -1,13 +1,18 @@
 <!doctype html>
-<html lang="ru" data-theme="light">
+<html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CQA · Контроль качества диалогов</title>
-<link rel="stylesheet" href="/cqa.css">
-<link rel="stylesheet" href="/cqa-extra.css">
-<script src="/cqa.js" defer></script>
-<script src="/cqa-init.js" type="module"></script>
+<!-- Relative paths on purpose: the same files can be uploaded as Dynamics 365 web resources next to this page. -->
+<link rel="stylesheet" href="cqa.css">
+<link rel="stylesheet" href="cqa-extra.css">
+<script src="cqa.js" defer></script>
+<script src="cqa-init.js" type="module"></script>
 </head>
-<body><div class="host-page"><div class="host-frame"><div id="cqa-root"></div></div></div></body>
+<body>
+<!-- The whole UI lives inside this element (styles are scoped to .cqa).
+     data-api-base: CQA server address when the page is hosted elsewhere (e.g. "https://cqa.example.com"); empty = same origin. -->
+<div id="cqa-root" class="cqa" data-cqa data-api-base=""></div>
+</body>
 </html>
