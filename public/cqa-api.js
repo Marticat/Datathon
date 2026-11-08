@@ -32,14 +32,22 @@ export function toBootstrap(state,group,rubricId) {
  }
  return {group,groups:[...new Set(state.conversations.map(c=>c.groupId))].sort(),checklist,dialogs,results,appeals,evaluations,jobs:state.jobs.filter(j=>['queued','running'].includes(j.status)),rubricId:rubric.id};
 }
-export function createArchiveApi({fetcher=fetch,pause=ms=>new Promise(r=>setTimeout(r,ms)),onProgress=()=>{}}={}) {
- let current=null;
- async function request(path,body){const response=await fetcher(path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw Error(data.error||`HTTP ${response.status}`);return data;}
+// base: where the CQA server lives ('' = same origin). Set it when the UI is hosted elsewhere, e.g. a Dynamics 365 web resource.
+export function createArchiveApi({fetcher=fetch,pause=ms=>new Promise(r=>setTimeout(r,ms)),onProgress=()=>{},base=''}={}) {
+ let current=null;base=String(base||'').replace(/\/+$/,'');
+ async function request(path,body){const response=await fetcher(base+path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw Error(data.error||`HTTP ${response.status}`);return data;}
  async function refresh(){return current=toBootstrap(await request('/api/state'),current.group,current.rubricId);}
  return async function api(method,path,body){
   if(path.startsWith('/api/bootstrap')){const params=new URL(path,'http://localhost').searchParams;const input=params.get('group');let state=await request('/api/state');const group=input||state.conversations[0]?.groupId||'DEV';
    if(input&&!state.conversations.some(c=>c.groupId===group)){await request('/api/import',{groupId:group});state=await request('/api/state');}
    return current=toBootstrap(state,group,params.get('rubricId'));
+  }
+  if(path==='/api/import-json'){
+   // Organizer-format JSON or a records array; voice calls carry audio_url, which the player uses.
+   const payload=body.payload,groupId=String(payload?.data?.dataset_group_id||body.group||'UPLOAD').slice(0,100);
+   const result=await request('/api/import',{payload,groupId});
+   current=toBootstrap(await request('/api/state'),groupId,current?.rubricId);
+   return {...current,imported:result.imported};
   }
   if(path==='/api/checklist'){const rubric=await request('/api/rubrics',toRubric(body));current.rubricId=rubric.id;await refresh();return current.checklist;}
   if(path==='/api/evaluate'||path==='/api/batch'){

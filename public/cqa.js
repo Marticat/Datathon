@@ -2,8 +2,13 @@
   'use strict';
 
   /* CQA workbench in the "CQA — шаблон интерфейса" design (shell / side / vw / dl / cl / card).
-     Data comes through opts.request (public/cqa-api.js → versioned local server).
-     The server sends a CSP without inline styles, so every dynamic style is set through CSSOM in post(). */
+
+     Embeddable component (e.g. a Dynamics 365 HTML web resource):
+       window.CQA.mount(rootElement, { request, filterDialogs, group, dialog }) → { reload, destroy, state }
+     - renders only inside rootElement (gets class "cqa"; all styles in cqa.css / cqa-extra.css are scoped to .cqa);
+     - no globals besides window.CQA, no absolute URLs, no inline styles (data-driven styles go through CSSOM in post());
+     - all server calls go through opts.request (public/cqa-api.js, whose base address is configurable).
+     cqa-init.js mounts it into [data-cqa] / #cqa-root and reads data-api-base, data-group, data-dialog. */
 
   var SP = { client: 'Клиент', operator: 'Оператор', bot: 'Бот', system: 'Система' };
 
@@ -61,7 +66,7 @@
     opts = opts || {};
     var base = opts.api || '';
     var state = {
-      role: 'analyst', view: 'dialogs', group: opts.group || '', did: null, filter: { query: '', language: '', gross: false },
+      view: 'dialogs', group: opts.group || '', did: null, filter: { query: '', language: '', gross: false },
       checklist: null, draft: null, dialogs: [], results: {}, appeals: {},
       drafts: {}, errs: {}, form: null, hl: null, focus: null,
       t: 0, playing: false, toast: '', loading: true, loadErr: '', busy: false
@@ -202,19 +207,11 @@
         return '<button class="side-i' + (state.view === v ? ' on' : '') + '" data-act="view" data-v="' + v + '"' + (off ? ' disabled' : '') +
           (state.view === v ? ' aria-current="page"' : '') + '>' + label + (badge ? '<span class="side-n">' + badge + '</span>' : '') + '</button>';
       }
-      function rb(r, label) {
-        return '<button data-act="role" data-r="' + r + '" class="' + (state.role === r ? 'on' : '') + '" aria-pressed="' + String(state.role === r) + '">' + label + '</button>';
-      }
       return '<nav class="side" aria-label="Разделы CQA"><h1>CQA</h1>' +
         it('dialogs', 'Диалоги') + it('checklist', 'Чек-листы') + it('appeals', 'Апелляции', n || '') + it('analysis', 'Анализ', '', !state.did) +
-        '<div class="side-b">' +
-        '<label class="side-l" for="cqa-group">Набор данных</label>' +
-        '<div class="side-g"><input id="cqa-group" class="in" type="text" list="cqa-groups" value="' + esc(state.group) + '" placeholder="group_id"><datalist id="cqa-groups">' +
-        (state.groups || []).map(function (g) { return '<option value="' + esc(g) + '"></option>'; }).join('') + '</datalist>' +
-        '<button class="btn line" data-act="load-group">Загрузить</button></div>' +
-        '<span class="side-l">Роль</span><div class="seg" role="group" aria-label="Роль">' + rb('analyst', 'Аналитик') + rb('reviewer', 'Проверяющий') + '</div>' +
-        '<a class="side-a" href="/audio">Загрузить аудио ↗</a><a class="side-a" href="/classic">Модель, импорт и история ↗</a><a class="side-a" href="/api/export" download>Экспорт JSON ↓</a>' +
-        '</div></nav>';
+        '<div class="side-b"><input class="file" id="cqa-file" type="file" accept=".json,application/json" data-upload="1" tabindex="-1" aria-hidden="true">' +
+        '<button class="btn line" type="button" data-act="upload">Загрузить JSON</button>' +
+        '<p>Диалоги в формате API организаторов или массив записей. Для звонков укажите audio_url — запись откроется в плеере.</p></div></nav>';
     }
 
     function head(title, sub, tools) {
@@ -227,11 +224,16 @@
       var h = head('Диалоги', 'Выберите диалог и откройте его анализ · набор ' + esc(state.group || '—'),
         state.dialogs.length ? '<button class="btn" data-act="ck-apply"' + (pendingDialogs ? '' : ' disabled') + '>' + (pendingDialogs ? 'Оценить неоценённые · ' + pendingDialogs : 'Все диалоги оценены') + '</button>' : '');
       if (!state.dialogs.length) {
-        return h + '<div class="dash"><p>В наборе нет диалогов.</p><p>Загрузите группу организатора (поле «Набор данных» слева), JSON с диалогами или аудиозапись. В разделе «Модель, импорт и история» проверьте подключение к локальной модели.</p>' +
-          '<p class="tools tools-c"><a class="btn" href="/classic">Импортировать JSON и настроить модель</a> <a class="btn line" href="/audio">Загрузить аудио</a></p></div>';
+        return h + '<div class="dash"><p>Диалогов пока нет.</p><p>Загрузите JSON с диалогами — кнопка «Загрузить JSON» слева внизу. Для звонков в записи укажите audio_url.</p>' +
+          '<p><button class="btn" type="button" data-act="upload">Загрузить JSON</button></p></div>';
       }
       var shown = shownDialogs();
-      h += '<div class="tools filters"><input id="cqa-search" class="in s" data-filter="query" type="search" placeholder="Найти диалог или реплику" aria-label="Поиск диалогов" value="' + esc(state.filter.query) + '">' +
+      var groups = state.groups || [];
+      h += '<div class="tools filters">' +
+        (groups.length > 1 ? '<select class="in" data-group="1" aria-label="Набор данных">' + groups.map(function (g) {
+          return '<option value="' + esc(g) + '"' + (g === state.group ? ' selected' : '') + '>Набор ' + esc(g) + '</option>';
+        }).join('') + '</select>' : '') +
+        '<input id="cqa-search" class="in s" data-filter="query" type="search" placeholder="Найти диалог или реплику" aria-label="Поиск диалогов" value="' + esc(state.filter.query) + '">' +
         '<select class="in" data-filter="language" aria-label="Язык">' + [['', 'Все языки'], ['RU', 'Русский'], ['KZ', 'Қазақша'], ['EN', 'English']].map(function (p) {
           return '<option value="' + p[0] + '"' + (state.filter.language === p[0] ? ' selected' : '') + '>' + p[1] + '</option>';
         }).join('') + '</select>' +
@@ -309,7 +311,7 @@
       if (r.range && r.range[0] >= 0 && r.range[1] >= 0) {
         out += '<button class="chip" type="button" data-act="indices" data-d="' + esc(d.id) + '" data-a="' + r.range[0] + '" data-b="' + r.range[1] + '">Проверенный участок: реплики ' + (r.range[0] + 1) + '–' + (r.range[1] + 1) + '</button>';
       }
-      if (state.role === 'analyst' && !x.ap) out += '<button class="chip" type="button" data-act="appeal-open" data-d="' + esc(d.id) + '" data-c="' + esc(x.c.id) + '">Оспорить</button>';
+      if (!x.ap) out += '<button class="chip" type="button" data-act="appeal-open" data-d="' + esc(d.id) + '" data-c="' + esc(x.c.id) + '">Оспорить</button>';
       if (x.ap) out += '<button class="chip" type="button" data-act="to-foot">' + (x.ap.dec ? (x.ap.dec.kind === 'changed' ? 'Изменено проверяющим' : 'Подтверждено проверяющим') : 'Апелляция ждёт решения') + '</button>';
       return out ? '<div class="ev">' + out + '</div>' : '';
     }
@@ -369,9 +371,6 @@
           return row + '<span class="tag ok">' + (ap.dec.kind === 'changed' ? 'Изменено: ' + esc(ans(c, x.orig)) + ' → ' + esc(ans(c, ap.dec.v)) : 'Оценка подтверждена') + '</span>' +
             '<span class="why">Причина: ' + esc(ap.dec.reason) + ' · ' + esc(fmtAt(ap.dec.at)) + '</span></div>';
         }
-        if (state.role !== 'reviewer') {
-          return row + '<span class="tag warn">Ожидает решения</span><button class="btn line" data-act="role" data-r="reviewer">Решить как проверяющий</button></div>';
-        }
         var cur = state.drafts[key + '|v'] != null ? state.drafts[key + '|v'] : x.orig;
         return row + '<div class="dec"><label for="' + fid + '-v">Оценка</label><select id="' + fid + '-v" class="in" data-draft="' + esc(key) + '|v">' + selectOptions(c, cur) + '</select>' +
           '<label for="' + fid + '-r" class="sr">Причина решения</label><textarea id="' + fid + '-r" class="in" data-draft="' + esc(key) + '|reason" placeholder="Причина решения (обязательно)">' + esc(state.drafts[key + '|reason'] || '') + '</textarea>' +
@@ -405,7 +404,7 @@
         var st = it.ap.dec ? (it.ap.dec.kind === 'changed' ? 'Оценка изменена проверяющим' : 'Оценка подтверждена') : 'Ожидает решения';
         return '<div class="dl"><b>' + esc(it.d.id) + ' · ' + esc(it.c.title) + '<br><small>' + esc(it.ap.comment) + '</small></b>' +
           '<span class="tag' + (it.ap.dec ? ' ok' : ' warn') + '">' + st + '</span>' +
-          '<button class="btn' + (it.ap.dec ? ' line' : '') + '" data-act="goto-appeal" data-d="' + esc(it.d.id) + '" data-c="' + esc(it.c.id) + '">' + (it.ap.dec ? 'Открыть' : state.role === 'reviewer' ? 'Решить' : 'Открыть') + '</button></div>';
+          '<button class="btn' + (it.ap.dec ? ' line' : '') + '" data-act="goto-appeal" data-d="' + esc(it.d.id) + '" data-c="' + esc(it.c.id) + '">' + (it.ap.dec ? 'Открыть' : 'Рассмотреть') + '</button></div>';
       }).join('') + (items.length ? '' : '<div class="dash">Пока пусто — новые апелляции появятся здесь</div>') + '</div>';
     }
 
@@ -502,15 +501,15 @@
     function bodyHTML() {
       if (state.loading) return '<div class="dash">Загрузка данных…</div>';
       if (state.loadErr || !state.checklist) {
-        return '<div class="dash"><p>Не удалось загрузить данные: ' + esc(state.loadErr || 'нет ответа сервера') + '</p><p><a class="btn" href="/classic">Импортировать JSON и проверить настройки</a></p></div>';
+        return '<div class="dash"><p>Не удалось загрузить данные: ' + esc(state.loadErr || 'нет ответа сервера') + '</p><p>Проверьте адрес сервера CQA (атрибут data-api-base у элемента компонента) и что сервер запущен.</p></div>';
       }
       if (state.view === 'analysis') return analysisView();
       return '<div class="vw on">' + (state.view === 'appeals' ? appealsView() : state.view === 'checklist' ? checklistView() : dialogsView()) + '</div>';
     }
     function render() {
       var scroll = window.scrollY;
-      root.className = 'shell';
-      root.innerHTML = sideHTML() + '<main class="main">' + bodyHTML() + '</main>' + modalHTML() +
+      root.classList.add('cqa');
+      root.innerHTML = '<div class="shell">' + sideHTML() + '<main class="main">' + bodyHTML() + '</main></div>' + modalHTML() +
         (state.toast ? '<div class="toast" role="status">' + esc(state.toast) + '</div>' : '');
       window.scrollTo(0, scroll);
       post();
@@ -616,16 +615,13 @@
       var a = el.getAttribute('data-act'), ds = el.getAttribute('data-d'), cid = el.getAttribute('data-c');
       var d = ds ? dlg(ds) : null;
 
-      if (state.busy && ['load-group', 'ck-save', 'ck-apply', 'eval-dialog', 'appeal-send', 'decide-change', 'decide-keep'].indexOf(a) >= 0) { toast('Дождитесь завершения текущей проверки. Задача сохранена на сервере.'); return; }
+      if (state.busy && ['upload', 'ck-save', 'ck-apply', 'eval-dialog', 'appeal-send', 'decide-change', 'decide-keep'].indexOf(a) >= 0) { toast('Дождитесь завершения текущей проверки. Задача сохранена на сервере.'); return; }
       if (a === 'view') {
         state.view = el.getAttribute('data-v');
         if (state.view === 'checklist' && !state.draft && state.checklist) state.draft = clone(state.checklist);
         render(); window.scrollTo(0, 0);
-      } else if (a === 'load-group') {
-        var inp = root.querySelector('#cqa-group'); state.view = 'dialogs';
-        load(inp ? inp.value.trim() : '');
-      } else if (a === 'role') {
-        state.role = el.getAttribute('data-r'); state.form = null; render();
+      } else if (a === 'upload') {
+        var file = root.querySelector('#cqa-file'); if (file) file.click();
       } else if (a === 'open') {
         state.did = el.getAttribute('data-id'); state.view = 'analysis'; state.t = 0; state.playing = false; state.hl = null; state.form = null;
         setAudio(dlg(state.did)); render(); window.scrollTo(0, 0);
@@ -716,7 +712,6 @@
     });
 
     root.addEventListener('keydown', function (e) {
-      if (!state.busy && e.key === 'Enter' && e.target.id === 'cqa-group') { state.view = 'dialogs'; load(e.target.value.trim()); }
       if (e.key === 'Escape' && state.form) { state.form = null; render(); }
     });
 
@@ -745,8 +740,29 @@
       }
       updateDirty();
     });
+    /* загрузка JSON с диалогами (звонки — с audio_url) */
+    function upload(input) {
+      var f = input.files && input.files[0];
+      if (!f || state.busy) return;
+      state.busy = true; toast('Загружаю ' + f.name + '…', true);
+      f.text().then(function (text) {
+        var payload;
+        try { payload = JSON.parse(text); } catch (err) { throw new Error('Файл не является корректным JSON.'); }
+        return api('POST', '/api/import-json', { payload: payload });
+      }).then(function (data) {
+        state.group = data.group; state.groups = data.groups || []; state.checklist = data.checklist; state.draft = null; state.jobs = data.jobs || [];
+        state.results = data.results || {}; state.appeals = data.appeals || {}; replaceDialogs(data.dialogs);
+        if (!dlg(state.did)) { state.did = state.dialogs.length ? state.dialogs[0].id : null; setAudio(dlg(state.did)); }
+        state.view = 'dialogs';
+        toast('Загружено диалогов: ' + data.imported + ' (набор ' + data.group + ').');
+      }).catch(function (err) { toast('Не удалось загрузить: ' + err.message); })
+        .finally(function () { state.busy = false; input.value = ''; render(); });
+    }
+
     root.addEventListener('change', function (e) {
       var t = e.target;
+      if (t.getAttribute('data-upload')) { upload(t); return; }
+      if (t.getAttribute('data-group')) { load(t.value); return; }
       if (t.getAttribute('data-filter') === 'gross' || t.getAttribute('data-filter') === 'language') {
         state.filter[t.getAttribute('data-filter')] = t.type === 'checkbox' ? t.checked : t.value; render(); return;
       }

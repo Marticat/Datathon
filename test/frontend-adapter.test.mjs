@@ -80,3 +80,14 @@ test('gross AI filter preserves original finding after review and excludes uneva
  assert.deepEqual(filterDialogs(b.dialogs,{gross:true,language:'RU'}),[]);
  assert.equal(filterDialogs(b.dialogs,{query:'сәлем'}).length,2);
 });
+
+test('embedded component calls a configurable server address and imports uploaded JSON into its own group',async()=>{
+ const seen=[];let current=state();
+ const fetcher=async(url,options={})=>{seen.push(url);const body=options.body?JSON.parse(options.body):undefined;
+  if(url.endsWith('/api/import')){current={...current,conversations:[...current.conversations,{...conversation,conversation_id:'call-1',groupId:body.groupId,audio_url:'https://cdn.example/call-1.mp3'}]};return {ok:true,json:async()=>({imported:1})};}
+  return {ok:true,json:async()=>current};};
+ const api=createArchiveApi({fetcher,base:'https://cqa.example.com/'});
+ const result=await api('POST','/api/import-json',{payload:{isSuccess:true,data:{dataset_group_id:'CALLS',records:[]}}});
+ assert.equal(result.imported,1);assert.equal(result.group,'CALLS');assert.deepEqual(result.dialogs.map(d=>[d.id,d.audio]),[['call-1','https://cdn.example/call-1.mp3']]);
+ assert.ok(seen.every(url=>url.startsWith('https://cqa.example.com/api/')),seen.join(' '));
+});

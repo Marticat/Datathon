@@ -1,9 +1,11 @@
-/* CQA design: "CQA — шаблон интерфейса" (CQA-CSS.css + CQA-lava-dark.css, unchanged, in their link order).
-   Server-specific additions live in cqa-extra.css. The Inter webfont is not loaded: the CSP allows only same-origin styles,
-   so the system font stack from the design is used. */
+/* CQA design ("CQA — шаблон интерфейса": CQA-CSS.css + CQA-lava-dark.css, in their link order),
+   scoped to the component root .cqa so the component can be embedded in a host page (e.g. a Dynamics 365 web resource).
+   Generated mechanically: every selector is prefixed with .cqa; :root/html/body map to .cqa itself. Values are unchanged.
+   The Inter webfont is not loaded (same-origin CSP / offline hosts); the design's system font fallback is used.
+   Live-data additions are in cqa-extra.css. */
 
 /* ===== CQA-CSS.css ===== */
-        :root {
+        .cqa {
             --bg: #eef2f9;
             --card: #fbfcff;
             --line: #dbe2f0;
@@ -22,7 +24,7 @@
         }
 
         @media (prefers-color-scheme:dark) {
-            :root:not([data-theme="light"]) {
+            .cqa {
                 --bg: #0f1626;
                 --card: #172038;
                 --line: #26324f;
@@ -35,60 +37,56 @@
             }
         }
 
-        *,
-        *::before,
-        *::after {
+        .cqa *, .cqa *::before, .cqa *::after {
             box-sizing: inherit
         }
 
-        html {
+        .cqa {
             height: 100%;
             scroll-padding-top: env(safe-area-inset-top, 0px)
         }
 
-        body {
+        .cqa {
             margin: 0;
             background: var(--bg);
             color: var(--ink);
             font: 400 15px/1.5 "Nunito Sans", system-ui, sans-serif
         }
 
-        button,
-        select,
-        textarea {
+        .cqa button, .cqa select, .cqa textarea {
             font: inherit;
             color: inherit
         }
 
-        button {
+        .cqa button {
             cursor: pointer
         }
 
-        :focus-visible {
+        .cqa :focus-visible {
             outline: 2px solid var(--g);
             outline-offset: 2px
         }
 
-        .shell {
+        .cqa .shell {
             display: grid;
             grid-template-columns: 210px 1fr;
             min-height: 100vh
         }
 
-        .side {
+        .cqa .side {
             background: linear-gradient(180deg, var(--side1), var(--side2));
             color: #fff;
             padding: 22px 14px
         }
 
-        .side h1 {
+        .cqa .side h1 {
             margin: 0 0 22px 8px;
             font-size: 22px;
             font-weight: 800;
             letter-spacing: .02em
         }
 
-        .side label {
+        .cqa .side label {
             display: block;
             padding: 9px 12px;
             border-radius: 9px;
@@ -98,44 +96,44 @@
             font-size: 14px
         }
 
-        .side label.on {
+        .cqa .side label.on {
             background: var(--g);
             color: #fff
         }
 
-        .main {
+        .cqa .main {
             padding: 22px 26px;
             max-width: 1200px
         }
 
-        .grid {
+        .cqa .grid {
             gap: 16px;
             grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
             grid-template-areas: "head head" "left right" "foot foot";
             align-content: start
         }
 
-        .vw {
+        .cqa .vw {
             display: none
         }
 
-        .vw.on {
+        .cqa .vw.on {
             display: block
         }
 
-        .vw.grid.on {
+        .cqa .vw.grid.on {
             display: grid
         }
 
-        .head {
+        .cqa .head {
             margin-bottom: 16px
         }
 
-        .grid .head {
+        .cqa .grid .head {
             margin: 0
         }
 
-        .dl {
+        .cqa .dl {
             display: flex;
             gap: 14px;
             align-items: center;
@@ -147,16 +145,16 @@
             margin-bottom: 10px
         }
 
-        .dl b {
+        .cqa .dl b {
             flex: 1;
             min-width: 150px
         }
 
-        .dl small {
+        .cqa .dl small {
             color: var(--mut)
         }
 
-        .tag {
+        .cqa .tag {
             padding: 3px 10px;
             border-radius: 8px;
             background: var(--line);
@@ -165,12 +163,12 @@
             font-weight: 700
         }
 
-        .tag.ok {
+        .cqa .tag.ok {
             background: rgba(63, 111, 216, .16);
             color: var(--gd)
         }
 
-        .cl {
+        .cqa .cl {
             padding: 14px 18px;
             border: 1px solid var(--line);
             border-radius: 14px;
@@ -178,25 +176,25 @@
             margin-bottom: 10px
         }
 
-        .cl h4 {
+        .cqa .cl h4 {
             margin: 0;
             display: flex;
             gap: 10px;
             justify-content: space-between
         }
 
-        .cl h4 em {
+        .cqa .cl h4 em {
             font-style: normal;
             color: var(--gd)
         }
 
-        .cl p {
+        .cqa .cl p {
             margin: 6px 0 0;
             color: var(--mut);
             font-size: 14px
         }
 
-        .head {
+        .cqa .head {
             grid-area: head;
             display: flex;
             justify-content: space-between;
@@ -205,33 +203,33 @@
             flex-wrap: wrap
         }
 
-        .head h2 {
+        .cqa .head h2 {
             margin: 0;
             font-size: 26px;
             font-weight: 800;
             color: var(--gd)
         }
 
-        .head p {
+        .cqa .head p {
             margin: 2px 0 0;
             color: var(--mut)
         }
 
-        .tools {
+        .cqa .tools {
             display: flex;
             gap: 10px;
             align-items: center;
             flex-wrap: wrap
         }
 
-        select {
+        .cqa select {
             background: var(--card);
             border: 1px solid var(--line);
             border-radius: 10px;
             padding: 9px 12px
         }
 
-        .btn {
+        .cqa .btn {
             border: 0;
             border-radius: 10px;
             padding: 10px 18px;
@@ -240,56 +238,56 @@
             color: #fff
         }
 
-        .btn:hover {
+        .cqa .btn:hover {
             filter: brightness(1.07)
         }
 
-        .btn:disabled {
+        .cqa .btn:disabled {
             opacity: .55;
             cursor: wait
         }
 
-        .btn.line {
+        .cqa .btn.line {
             background: transparent;
             color: var(--ink);
             border: 1.5px solid var(--mut)
         }
 
-        .card {
+        .cqa .card {
             background: var(--card);
             border: 1px solid var(--line);
             border-radius: 18px;
             padding: 20px
         }
 
-        .card h3 {
+        .cqa .card h3 {
             margin: 0 0 12px;
             font-size: 18px;
             font-weight: 800;
             color: var(--gd)
         }
 
-        .left {
+        .cqa .left {
             grid-area: left
         }
 
-        .right {
+        .cqa .right {
             grid-area: right;
             align-self: start
         }
 
-        .foot {
+        .cqa .foot {
             grid-area: foot
         }
 
-        .chat {
+        .cqa .chat {
             max-height: 470px;
             overflow: auto;
             display: grid;
             gap: 4px
         }
 
-        .m {
+        .cqa .m {
             display: grid;
             grid-template-columns: 50px 1fr;
             gap: 10px;
@@ -298,46 +296,45 @@
             border-bottom: 1px solid var(--line)
         }
 
-        .m.hit {
+        .cqa .m.hit {
             background: var(--hl);
             border-color: transparent
         }
 
-        .m time {
+        .cqa .m time {
             color: var(--mut);
             font-size: 13px;
             font-variant-numeric: tabular-nums
         }
 
-        .m b {
+        .cqa .m b {
             font-size: 14px
         }
 
-        .m.client b {
+        .cqa .m.client b {
             color: var(--ink)
         }
 
-        .m.operator b {
+        .cqa .m.operator b {
             color: var(--gd)
         }
 
-        .m.bot,
-        .m.system {
+        .cqa .m.bot, .cqa .m.system {
             color: var(--mut)
         }
 
-        .m p {
+        .cqa .m p {
             margin: 0
         }
 
-        .score {
+        .cqa .score {
             display: flex;
             gap: 18px;
             align-items: center;
             margin-bottom: 14px
         }
 
-        .ring {
+        .cqa .ring {
             --p: 0;
             flex: none;
             width: 104px;
@@ -348,7 +345,7 @@
             place-items: center
         }
 
-        .ring div {
+        .cqa .ring div {
             width: 82px;
             height: 82px;
             border-radius: 50%;
@@ -359,16 +356,16 @@
             line-height: 1.1
         }
 
-        .ring b {
+        .cqa .ring b {
             font-size: 26px;
             font-weight: 800
         }
 
-        .ring small {
+        .cqa .ring small {
             color: var(--mut)
         }
 
-        .flag {
+        .cqa .flag {
             margin: 0 0 10px;
             padding: 8px 12px;
             border-radius: 10px;
@@ -378,19 +375,19 @@
             font-size: 14px
         }
 
-        .cr {
+        .cqa .cr {
             padding: 11px 0;
             border-top: 1px solid var(--line)
         }
 
-        .cr-t {
+        .cqa .cr-t {
             display: flex;
             gap: 10px;
             align-items: center;
             font-weight: 700
         }
 
-        .cr-t i {
+        .cqa .cr-t i {
             font-style: normal;
             width: 24px;
             height: 24px;
@@ -402,32 +399,32 @@
             color: var(--gd)
         }
 
-        .cr-t i.no {
+        .cqa .cr-t i.no {
             background: rgba(181, 80, 47, .15);
             color: var(--bad)
         }
 
-        .cr-t i.na {
+        .cqa .cr-t i.na {
             background: var(--line);
             color: var(--mut)
         }
 
-        .cr-t span {
+        .cqa .cr-t span {
             flex: 1
         }
 
-        .cr-t em {
+        .cqa .cr-t em {
             font-style: normal;
             color: var(--gd)
         }
 
-        .cr p {
+        .cqa .cr p {
             margin: 4px 0 0 34px;
             color: var(--mut);
             font-size: 14px
         }
 
-        .cr .ev {
+        .cqa .cr .ev {
             margin-left: 34px;
             margin-top: 6px;
             display: flex;
@@ -435,7 +432,7 @@
             flex-wrap: wrap
         }
 
-        .chip {
+        .cqa .chip {
             border: 1px solid var(--line);
             background: transparent;
             border-radius: 8px;
@@ -445,22 +442,22 @@
             font-weight: 600
         }
 
-        .chip:hover {
+        .cqa .chip:hover {
             border-color: var(--g)
         }
 
-        .empty {
+        .cqa .empty {
             color: var(--mut);
             padding: 18px 0
         }
 
-        .ap {
+        .cqa .ap {
             display: grid;
             gap: 10px;
             margin-top: 8px
         }
 
-        .ap .row {
+        .cqa .ap .row {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
@@ -470,7 +467,7 @@
             padding: 10px 14px
         }
 
-        textarea {
+        .cqa textarea {
             width: 100%;
             border: 1px solid var(--line);
             background: var(--bg);
@@ -479,32 +476,32 @@
             min-height: 62px
         }
 
-        .err {
+        .cqa .err {
             color: var(--bad);
             font-weight: 600
         }
 
         @media (max-width:900px) {
-            .shell {
+            .cqa .shell {
                 grid-template-columns: 1fr
             }
 
-            .side {
+            .cqa .side {
                 display: none
             }
 
-            .grid {
+            .cqa .grid {
                 grid-template-columns: 1fr;
                 grid-template-areas: "head" "left" "right" "foot"
             }
 
-            .main {
+            .cqa .main {
                 padding: 16px
             }
         }
 
         /* Glass */
-        :root {
+        .cqa {
             --glass: rgba(255, 255, 255, .55);
             --glass-b: rgba(255, 255, 255, .75);
             --glass-sh: 0 12px 36px rgba(30, 60, 130, .14), inset 0 1px 0 rgba(255, 255, 255, .9);
@@ -512,18 +509,18 @@
         }
 
         @media (prefers-color-scheme:dark) {
-            :root:not([data-theme="light"]) {
+            .cqa {
                 --glass: rgba(28, 38, 66, .5);
                 --glass-b: rgba(255, 255, 255, .12);
                 --glass-sh: 0 12px 36px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .1)
             }
         }
 
-        body {
+        .cqa {
             background: var(--bg)
         }
 
-        body::before {
+        .cqa::before {
             content: "";
             position: fixed;
             inset: -12%;
@@ -539,9 +536,7 @@
             }
         }
 
-        .card,
-        .dl,
-        .cl {
+        .cqa .card, .cqa .dl, .cqa .cl {
             background: var(--glass);
             border: 1px solid var(--glass-b);
             box-shadow: var(--glass-sh);
@@ -550,12 +545,11 @@
             border-radius: 24px
         }
 
-        .dl,
-        .cl {
+        .cqa .dl, .cqa .cl {
             border-radius: 20px
         }
 
-        .side {
+        .cqa .side {
             margin: 12px 0 12px 12px;
             border-radius: 26px;
             position: sticky;
@@ -568,77 +562,77 @@
             box-shadow: var(--glass-sh)
         }
 
-        .side label {
+        .cqa .side label {
             border-radius: 14px;
             transition: background .25s, transform .3s var(--spring)
         }
 
-        .side label:hover {
+        .cqa .side label:hover {
             background: rgba(255, 255, 255, .14);
             transform: translateX(3px)
         }
 
-        .side label.on {
+        .cqa .side label.on {
             background: rgba(255, 255, 255, .26);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), 0 4px 14px rgba(10, 25, 70, .25)
         }
 
-        .btn {
+        .cqa .btn {
             border-radius: 999px;
             background: linear-gradient(180deg, #6b97f0, #3d6bd6);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 6px 16px rgba(61, 107, 214, .35);
             transition: transform .3s var(--spring), filter .2s
         }
 
-        .btn:hover {
+        .cqa .btn:hover {
             transform: scale(1.05)
         }
 
-        .btn:active {
+        .cqa .btn:active {
             transform: scale(.96)
         }
 
-        .btn.line {
+        .cqa .btn.line {
             background: var(--glass);
             box-shadow: none;
             border: 1px solid var(--glass-b)
         }
 
-        .chip {
+        .cqa .chip {
             border-radius: 999px;
             background: var(--glass);
             transition: transform .3s var(--spring)
         }
 
-        .chip:hover {
+        .cqa .chip:hover {
             transform: scale(1.06)
         }
 
-        textarea {
+        .cqa textarea {
             background: var(--glass);
             border: 1px solid var(--glass-b);
             border-radius: 16px
         }
 
-        .ap .row {
+        .cqa .ap .row {
             background: var(--glass);
             border: 1px solid var(--glass-b);
             border-radius: 16px
         }
 
-        .m {
+        .cqa .m {
             border-radius: 14px
         }
 
-        .m.hit {
+        .cqa .m.hit {
             box-shadow: inset 0 0 0 1px rgba(63, 111, 216, .35)
         }
 
-        .tag {
+        .cqa .tag {
             border-radius: 999px
         }
 
-        .ring {
+        .cqa .ring {
             box-shadow: 0 8px 22px rgba(63, 111, 216, .25)
         }
 
@@ -667,89 +661,78 @@
             }
         }
 
-        .vw .head,
-        .vw .card,
-        .dl,
-        .cl {
+        .cqa .vw .head, .cqa .vw .card, .cqa .dl, .cqa .cl {
             animation: bloop .75s var(--spring) both
         }
 
-        .vw .head {
+        .cqa .vw .head {
             animation-delay: .02s
         }
 
-        .grid .left {
+        .cqa .grid .left {
             animation-delay: .1s !important
         }
 
-        .grid .right {
+        .cqa .grid .right {
             animation-delay: .18s !important
         }
 
-        .grid .foot {
+        .cqa .grid .foot {
             animation-delay: .26s !important
         }
 
-        .dl:nth-child(2),
-        .cl:nth-child(2) {
+        .cqa .dl:nth-child(2), .cqa .cl:nth-child(2) {
             animation-delay: .07s
         }
 
-        .dl:nth-child(3),
-        .cl:nth-child(3) {
+        .cqa .dl:nth-child(3), .cqa .cl:nth-child(3) {
             animation-delay: .14s
         }
 
-        .dl:nth-child(4),
-        .cl:nth-child(4) {
+        .cqa .dl:nth-child(4), .cqa .cl:nth-child(4) {
             animation-delay: .21s
         }
 
-        .dl:nth-child(5),
-        .cl:nth-child(5) {
+        .cqa .dl:nth-child(5), .cqa .cl:nth-child(5) {
             animation-delay: .28s
         }
 
-        .dl:nth-child(6),
-        .cl:nth-child(6) {
+        .cqa .dl:nth-child(6), .cqa .cl:nth-child(6) {
             animation-delay: .35s
         }
 
-        .dl:nth-child(7),
-        .cl:nth-child(7) {
+        .cqa .dl:nth-child(7), .cqa .cl:nth-child(7) {
             animation-delay: .42s
         }
 
-        .dl:nth-child(8),
-        .cl:nth-child(8) {
+        .cqa .dl:nth-child(8), .cqa .cl:nth-child(8) {
             animation-delay: .49s
         }
 
-        .ring {
+        .cqa .ring {
             animation: bloopR .9s var(--spring) .25s both
         }
 
-        .side {
+        .cqa .side {
             animation: bloop .8s var(--spring) both
         }
 
         @media (prefers-reduced-motion:reduce) {
 
-            *,
-            *::before {
+            .cqa *, .cqa *::before {
                 animation: none !important;
                 transition: none !important
             }
         }
 
         /* ===== Шаблон без скриптов: вкладки на radio, окно на checkbox ===== */
-        body>input {
+        .cqa>input {
             position: absolute;
             opacity: 0;
             pointer-events: none
         }
 
-        .side label {
+        .cqa .side label {
             display: block;
             padding: 9px 12px;
             color: #e3ebff;
@@ -758,35 +741,29 @@
             cursor: pointer
         }
 
-        #t-d:checked~.shell #v-dialogs,
-        #t-c:checked~.shell #v-checklists,
-        #t-a:checked~.shell #v-appeals {
+        .cqa #t-d:checked~.shell #v-dialogs, .cqa #t-c:checked~.shell #v-checklists, .cqa #t-a:checked~.shell #v-appeals {
             display: block
         }
 
-        #t-x:checked~.shell #v-analytics {
+        .cqa #t-x:checked~.shell #v-analytics {
             display: grid
         }
 
-        #t-d:checked~.shell label[for=t-d],
-        #t-c:checked~.shell label[for=t-c],
-        #t-a:checked~.shell label[for=t-a],
-        #t-x:checked~.shell label[for=t-x] {
+        .cqa #t-d:checked~.shell label[for=t-d], .cqa #t-c:checked~.shell label[for=t-c], .cqa #t-a:checked~.shell label[for=t-a], .cqa #t-x:checked~.shell label[for=t-x] {
             background: rgba(255, 255, 255, .26);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), 0 4px 14px rgba(10, 25, 70, .25)
         }
 
-        label.btn,
-        label.chip {
+        .cqa label.btn, .cqa label.chip {
             display: inline-block;
             cursor: pointer
         }
 
-        label.btn {
+        .cqa label.btn {
             text-align: center
         }
 
-        .in {
+        .cqa .in {
             background: var(--glass);
             border: 1px solid var(--glass-b);
             border-radius: 12px;
@@ -795,29 +772,29 @@
             font: inherit
         }
 
-        .cf {
+        .cqa .cf {
             display: flex;
             gap: 10px;
             align-items: center;
             flex-wrap: wrap
         }
 
-        .cf .n {
+        .cqa .cf .n {
             flex: 1;
             min-width: 200px;
             font-weight: 700
         }
 
-        .cf .w {
+        .cqa .cf .w {
             width: 76px
         }
 
-        .cf .num {
+        .cqa .cf .num {
             color: var(--gd);
             font-weight: 800
         }
 
-        .cf label {
+        .cqa .cf label {
             display: flex;
             gap: 6px;
             align-items: center;
@@ -825,19 +802,19 @@
             font-size: 14px
         }
 
-        .in.s {
+        .cqa .in.s {
             display: block;
             width: 100%;
             margin-top: 10px
         }
 
-        .cl textarea {
+        .cqa .cl textarea {
             margin-top: 10px;
             min-height: 54px;
             width: 100%
         }
 
-        .dash {
+        .cqa .dash {
             border: 1.5px dashed var(--line);
             border-radius: 20px;
             padding: 22px;
@@ -845,7 +822,7 @@
             color: var(--mut)
         }
 
-        .ov {
+        .cqa .ov {
             position: fixed;
             inset: 0;
             z-index: 40;
@@ -856,17 +833,17 @@
             backdrop-filter: blur(8px)
         }
 
-        #m:checked~.ov {
+        .cqa #m:checked~.ov {
             display: grid
         }
 
-        .ov-bg {
+        .cqa .ov-bg {
             position: absolute;
             inset: 0;
             cursor: pointer
         }
 
-        .mdl {
+        .cqa .mdl {
             position: relative;
             width: min(540px, 92vw);
             padding: 24px;
@@ -879,49 +856,49 @@
             animation: bloop .5s var(--spring) both
         }
 
-        .mdl h3 {
+        .cqa .mdl h3 {
             margin: 0 0 10px;
             font-size: 20px
         }
 
-        .mdl p {
+        .cqa .mdl p {
             margin: 6px 0;
             color: var(--mut);
             font-size: 14px
         }
 
-        .mdl p b {
+        .cqa .mdl p b {
             color: var(--ink)
         }
 
-        .mdl .q {
+        .cqa .mdl .q {
             padding: 8px 12px;
             border-radius: 12px;
             background: var(--hl);
             color: var(--ink)
         }
 
-        .mdl textarea {
+        .cqa .mdl textarea {
             margin-top: 10px;
             min-height: 96px;
             width: 100%
         }
 
-        .mdl .row {
+        .cqa .mdl .row {
             display: flex;
             gap: 10px;
             justify-content: flex-end;
             margin-top: 14px
         }
 
-        .pl {
+        .cqa .pl {
             display: flex;
             gap: 14px;
             align-items: center;
             margin-bottom: 14px
         }
 
-        .pp {
+        .cqa .pp {
             width: 44px;
             height: 44px;
             padding: 0;
@@ -931,13 +908,13 @@
             color: #fff
         }
 
-        .wv {
+        .cqa .wv {
             position: relative;
             flex: 1;
             height: 54px
         }
 
-        .wv .l {
+        .cqa .wv .l {
             position: absolute;
             inset: 0;
             display: flex;
@@ -945,21 +922,21 @@
             gap: 2px
         }
 
-        .wv .l i {
+        .cqa .wv .l i {
             flex: 1;
             border-radius: 3px;
             background: var(--line)
         }
 
-        .wv .f {
+        .cqa .wv .f {
             clip-path: inset(0 58% 0 0)
         }
 
-        .wv .f i {
+        .cqa .wv .f i {
             background: var(--g)
         }
 
-        .pin {
+        .cqa .pin {
             position: absolute;
             top: -6px;
             width: 13px;
@@ -972,7 +949,7 @@
             z-index: 2
         }
 
-        #ptime {
+        .cqa #ptime {
             font-variant-numeric: tabular-nums;
             color: var(--mut);
             font-size: 13px;
@@ -980,18 +957,18 @@
             text-align: right
         }
 
-        .hint {
+        .cqa .hint {
             margin: -6px 0 12px;
             color: var(--mut);
             font-size: 12px
         }
 
-        .m.now {
+        .cqa .m.now {
             background: rgba(63, 111, 216, .12)
         }
 
         @media (max-width:900px) {
-            .side {
+            .cqa .side {
                 display: flex;
                 position: static;
                 height: auto;
@@ -1001,16 +978,16 @@
                 border-radius: 20px
             }
 
-            .side h1 {
+            .cqa .side h1 {
                 display: none
             }
 
-            .side label {
+            .cqa .side label {
                 white-space: nowrap
             }
         }
 
-        .grp {
+        .cqa .grp {
             margin: 22px 0 10px;
             font-size: 13px;
             letter-spacing: .06em;
@@ -1018,26 +995,25 @@
             color: var(--mut)
         }
 
-        .st {
+        .cqa .st {
             display: flex;
             gap: 8px;
             align-items: center;
             margin-top: 8px
         }
 
-        .st .sc {
+        .cqa .st .sc {
             width: 72px;
             text-align: center;
             font-weight: 800
         }
 
-        .st .sd {
+        .cqa .st .sd {
             flex: 1
         }
 
         /* ===== Arc-стиль: пастельный туман, матовое стекло, спокойное движение, углы 10–18px ===== */
-        :root,
-        :root:not([data-theme="light"]) {
+        .cqa {
             color-scheme: light;
             --bg: #f6efe6;
             --card: #fbf8f3;
@@ -1055,13 +1031,13 @@
             --spring: cubic-bezier(.22, .8, .3, 1)
         }
 
-        body {
+        .cqa {
             font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
             background: var(--bg);
             color: var(--ink)
         }
 
-        body::before {
+        .cqa::before {
             inset: -10%;
             background:
                 radial-gradient(48% 46% at 8% 96%, #b9c9f6 0, transparent 70%),
@@ -1079,7 +1055,7 @@
             }
         }
 
-        body::after {
+        .cqa::after {
             content: "";
             position: fixed;
             inset: -15%;
@@ -1093,7 +1069,7 @@
         }
 
         @supports (animation-timeline:scroll()) {
-            body::after {
+            .cqa::after {
                 animation: fogScroll linear both;
                 animation-timeline: scroll(root)
             }
@@ -1110,15 +1086,13 @@
         }
 
         @media (prefers-reduced-motion:reduce) {
-            body::after {
+            .cqa::after {
                 animation: none !important
             }
         }
 
         /* стекло и углы */
-        .card,
-        .dl,
-        .cl {
+        .cqa .card, .cqa .dl, .cqa .cl {
             background: var(--glass);
             border: 1px solid var(--glass-b);
             box-shadow: var(--glass-sh);
@@ -1126,16 +1100,15 @@
             backdrop-filter: blur(30px) saturate(160%)
         }
 
-        .card {
+        .cqa .card {
             border-radius: 16px
         }
 
-        .dl,
-        .cl {
+        .cqa .dl, .cqa .cl {
             border-radius: 14px
         }
 
-        .side {
+        .cqa .side {
             border-radius: 18px;
             background: rgba(255, 255, 255, .38);
             border: 1px solid rgba(255, 255, 255, .75);
@@ -1145,136 +1118,131 @@
             backdrop-filter: blur(34px) saturate(160%)
         }
 
-        .side h1 {
+        .cqa .side h1 {
             color: var(--ink);
             letter-spacing: -.03em
         }
 
-        .side label {
+        .cqa .side label {
             color: var(--ink);
             border-radius: 10px;
             font-weight: 600
         }
 
-        .side label:hover {
+        .cqa .side label:hover {
             background: rgba(255, 255, 255, .55);
             transform: translateX(2px)
         }
 
-        #t-d:checked~.shell label[for=t-d],
-        #t-c:checked~.shell label[for=t-c],
-        #t-a:checked~.shell label[for=t-a],
-        #t-x:checked~.shell label[for=t-x] {
+        .cqa #t-d:checked~.shell label[for=t-d], .cqa #t-c:checked~.shell label[for=t-c], .cqa #t-a:checked~.shell label[for=t-a], .cqa #t-x:checked~.shell label[for=t-x] {
             background: rgba(255, 255, 255, .85);
             box-shadow: 0 1px 3px rgba(60, 50, 110, .14)
         }
 
-        .btn {
+        .cqa .btn {
             border-radius: 10px;
             background: linear-gradient(180deg, #e68b74, #cc5f47);
             color: #fff;
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 4px 12px rgba(204, 95, 71, .3)
         }
 
-        .btn:hover {
+        .cqa .btn:hover {
             transform: translateY(-1px)
         }
 
-        .btn:active {
+        .cqa .btn:active {
             transform: none
         }
 
-        .btn.line {
+        .cqa .btn.line {
             background: rgba(255, 255, 255, .55);
             color: var(--ink);
             border: 1px solid var(--glass-b);
             box-shadow: none
         }
 
-        .chip {
+        .cqa .chip {
             border-radius: 8px;
             background: rgba(255, 255, 255, .55);
             color: var(--gd)
         }
 
-        .chip:hover {
+        .cqa .chip:hover {
             transform: none;
             border-color: var(--g)
         }
 
-        .tag {
+        .cqa .tag {
             border-radius: 8px
         }
 
-        .tag.ok {
+        .cqa .tag.ok {
             background: rgba(224, 128, 108, .12);
             color: var(--gd)
         }
 
-        .in,
-        select,
-        textarea {
+        .cqa .in, .cqa select, .cqa textarea {
             border-radius: 10px;
             background: rgba(255, 255, 255, .6);
             border: 1px solid var(--glass-b);
             color: var(--ink)
         }
 
-        .m {
+        .cqa .m {
             border-radius: 10px
         }
 
-        .m.now {
+        .cqa .m.now {
             background: rgba(224, 128, 108, .08)
         }
 
-        .m.hit {
+        .cqa .m.hit {
             box-shadow: inset 0 0 0 1px rgba(224, 128, 108, .3)
         }
 
-        .cr-t i {
+        .cqa .cr-t i {
             background: rgba(224, 128, 108, .12);
             color: var(--gd)
         }
 
-        .cr-t i.no {
+        .cqa .cr-t i.no {
             background: rgba(194, 80, 58, .14);
             color: var(--bad)
         }
 
-        .cr-t i.na {
+        .cqa .cr-t i.na {
             background: var(--line);
             color: var(--mut)
         }
 
-        .ap .row {
+        .cqa .ap .row {
             border-radius: 12px;
             background: rgba(255, 255, 255, .55)
         }
 
-        .dash {
+        .cqa .dash {
             border-radius: 14px
         }
 
-        .mdl {
+        .cqa .mdl {
             border-radius: 18px;
             background: color-mix(in srgb, var(--card) 80%, transparent)
         }
 
-        .ov {
+        .cqa .ov {
             background: rgba(50, 40, 90, .22)
         }
 
-        .ring {
+        .cqa .ring {
             box-shadow: 0 6px 18px rgba(224, 128, 108, .2)
         }
 
-        .pin {
+        .cqa .pin {
             background: var(--g)
         }
 
         /* типографика как в Arc: плотные тяжёлые заголовки */
-        .head h2 {
+        .cqa .head h2 {
             color: var(--ink);
             font-size: 32px;
             font-weight: 800;
@@ -1282,14 +1250,13 @@
             line-height: 1.1
         }
 
-        .card h3,
-        .mdl h3 {
+        .cqa .card h3, .cqa .mdl h3 {
             color: var(--ink);
             font-weight: 700;
             letter-spacing: -.02em
         }
 
-        .grp {
+        .cqa .grp {
             color: var(--mut)
         }
 
@@ -1318,20 +1285,15 @@
             }
         }
 
-        .vw .head,
-        .vw .card,
-        .dl,
-        .cl,
-        .side,
-        .mdl {
+        .cqa .vw .head, .cqa .vw .card, .cqa .dl, .cqa .cl, .cqa .side, .cqa .mdl {
             animation-duration: .8s
         }
 
-        .ring {
+        .cqa .ring {
             animation-duration: 1s
         }
 
-        .cr-t i {
+        .cqa .cr-t i {
             background: rgba(88, 160, 120, .16);
             color: #3d855c
         }
@@ -1344,8 +1306,7 @@
    <link rel="stylesheet" href="CQA-minimal.css">
    ===================================================================== */
 
-:root,
-:root:not([data-theme="light"]) {
+.cqa {
     color-scheme: light;
     --bg: #f7f7f4;
     --card: #ffffff;
@@ -1363,46 +1324,46 @@
 }
 
 /* ---------- убираем фон-туман, анимации, стекло, тени ---------- */
-body::before, body::after { content: none; display: none; }
-.side { animation: none; }
+.cqa::before, .cqa::after { content: none; display: none; }
+.cqa .side { animation: none; }
 
-.card, .dl, .cl, .side, .mdl, .ov, .btn, .chip, .tag, .in, select, textarea {
+.cqa .card, .cqa .dl, .cqa .cl, .cqa .side, .cqa .mdl, .cqa .ov, .cqa .btn, .cqa .chip, .cqa .tag, .cqa .in, .cqa select, .cqa textarea {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
 }
 
-body {
+.cqa {
     background: var(--bg);
     color: var(--ink);
     font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 /* ---------- каркас ---------- */
-.main { padding: 32px 36px; }
-.head { margin-bottom: 20px; }
+.cqa .main { padding: 32px 36px; }
+.cqa .head { margin-bottom: 20px; }
 
-.head h2 {
+.cqa .head h2 {
     color: var(--ink);
     font-size: 24px;
     font-weight: 600;
     letter-spacing: -.01em;
 }
 
-.head p { color: var(--mut); font-size: 14px; }
+.cqa .head p { color: var(--mut); font-size: 14px; }
 
-.card, .dl, .cl {
+.cqa .card, .cqa .dl, .cqa .cl {
     background: var(--card);
     border: 1px solid var(--line);
     border-radius: 10px;
     box-shadow: none;
 }
 
-.card { padding: 20px; }
-.card h3, .mdl h3 { color: var(--ink); font-size: 16px; font-weight: 600; letter-spacing: 0; }
-.dl, .cl { margin-bottom: 8px; }
+.cqa .card { padding: 20px; }
+.cqa .card h3, .cqa .mdl h3 { color: var(--ink); font-size: 16px; font-weight: 600; letter-spacing: 0; }
+.cqa .dl, .cqa .cl { margin-bottom: 8px; }
 
 /* ---------- сайдбар ---------- */
-.side {
+.cqa .side {
     position: sticky;
     top: 0;
     height: 100vh;
@@ -1415,33 +1376,30 @@ body {
     color: var(--ink);
 }
 
-.side h1 {
+.cqa .side h1 {
     color: var(--ink);
     font-size: 17px;
     font-weight: 700;
     letter-spacing: 0;
 }
 
-.side label {
+.cqa .side label {
     color: var(--mut);
     border-radius: 8px;
     font-weight: 500;
     transition: background .15s, color .15s;
 }
 
-.side label:hover { background: rgba(0, 0, 0, .04); color: var(--ink); transform: none; }
+.cqa .side label:hover { background: rgba(0, 0, 0, .04); color: var(--ink); transform: none; }
 
-#t-d:checked~.shell label[for=t-d],
-#t-c:checked~.shell label[for=t-c],
-#t-a:checked~.shell label[for=t-a],
-#t-x:checked~.shell label[for=t-x] {
+.cqa #t-d:checked~.shell label[for=t-d], .cqa #t-c:checked~.shell label[for=t-c], .cqa #t-a:checked~.shell label[for=t-a], .cqa #t-x:checked~.shell label[for=t-x] {
     background: #eef0ec;
     color: var(--ink);
     box-shadow: none;
 }
 
 /* ---------- кнопки, чипы, теги ---------- */
-.btn {
+.cqa .btn {
     background: var(--g);
     color: #fff;
     border: 1px solid var(--g);
@@ -1452,19 +1410,19 @@ body {
     transition: background .15s, border-color .15s;
 }
 
-.btn:hover { background: var(--gd); border-color: var(--gd); filter: none; transform: none; }
-.btn:active { transform: none; }
+.cqa .btn:hover { background: var(--gd); border-color: var(--gd); filter: none; transform: none; }
+.cqa .btn:active { transform: none; }
 
-.btn.line {
+.cqa .btn.line {
     background: transparent;
     color: var(--ink);
     border: 1px solid var(--line);
     box-shadow: none;
 }
 
-.btn.line:hover { background: rgba(0, 0, 0, .03); border-color: var(--mut); }
+.cqa .btn.line:hover { background: rgba(0, 0, 0, .03); border-color: var(--mut); }
 
-.chip {
+.cqa .chip {
     background: transparent;
     color: var(--mut);
     border: 1px solid var(--line);
@@ -1472,19 +1430,19 @@ body {
     transition: border-color .15s, color .15s;
 }
 
-.chip:hover { transform: none; color: var(--ink); border-color: var(--mut); }
+.cqa .chip:hover { transform: none; color: var(--ink); border-color: var(--mut); }
 
-.tag {
+.cqa .tag {
     background: #f0f0ec;
     color: var(--mut);
     border-radius: 6px;
     font-weight: 600;
 }
 
-.tag.ok { background: #e9f1eb; color: var(--gd); }
+.cqa .tag.ok { background: #e9f1eb; color: var(--gd); }
 
 /* ---------- поля ---------- */
-.in, select, textarea {
+.cqa .in, .cqa select, .cqa textarea {
     background: #fff;
     color: var(--ink);
     border: 1px solid var(--line);
@@ -1493,19 +1451,19 @@ body {
     transition: border-color .15s;
 }
 
-.in:hover, select:hover, textarea:hover { border-color: #cfcfc8; }
+.cqa .in:hover, .cqa select:hover, .cqa textarea:hover { border-color: #cfcfc8; }
 
-.in:focus, select:focus, textarea:focus {
+.cqa .in:focus, .cqa select:focus, .cqa textarea:focus {
     outline: none;
     border-color: var(--g);
     box-shadow: none;
 }
 
-:focus-visible { outline: 2px solid var(--g); outline-offset: 2px; }
-input[type=checkbox] { accent-color: var(--g); }
-.cf .num { color: var(--mut); font-weight: 600; }
+.cqa :focus-visible { outline: 2px solid var(--g); outline-offset: 2px; }
+.cqa input[type=checkbox] { accent-color: var(--g); }
+.cqa .cf .num { color: var(--mut); font-weight: 600; }
 
-.grp {
+.cqa .grp {
     color: var(--mut);
     font-size: 12px;
     font-weight: 600;
@@ -1513,7 +1471,7 @@ input[type=checkbox] { accent-color: var(--g); }
 }
 
 /* ---------- диалог ---------- */
-.m {
+.cqa .m {
     background: transparent;
     border: 0;
     border-bottom: 1px solid var(--line);
@@ -1521,54 +1479,54 @@ input[type=checkbox] { accent-color: var(--g); }
     box-shadow: none;
 }
 
-.m.operator b { color: var(--gd); }
-.m.hit { background: var(--hl); box-shadow: none; }
-.m.now { background: #f3f3ef; }
+.cqa .m.operator b { color: var(--gd); }
+.cqa .m.hit { background: var(--hl); box-shadow: none; }
+.cqa .m.now { background: #f3f3ef; }
 
 /* ---------- плеер ---------- */
-.pp { background: var(--g); border-radius: 50%; box-shadow: none; }
-.wv .l i { background: #e3e3de; }
-.wv .f i { background: var(--g); box-shadow: none; }
-.pin { background: var(--g); border: 2px solid var(--card); box-shadow: none; }
-#ptime { color: var(--mut); }
+.cqa .pp { background: var(--g); border-radius: 50%; box-shadow: none; }
+.cqa .wv .l i { background: #e3e3de; }
+.cqa .wv .f i { background: var(--g); box-shadow: none; }
+.cqa .pin { background: var(--g); border: 2px solid var(--card); box-shadow: none; }
+.cqa #ptime { color: var(--mut); }
 
 /* ---------- оценка ---------- */
-.ring {
+.cqa .ring {
     background: conic-gradient(var(--g) calc(var(--p) * 1%), #e7e7e2 0);
     box-shadow: none;
 }
 
-.ring div { background: var(--card); box-shadow: none; }
-.ring b { color: var(--ink); background: none; -webkit-text-fill-color: currentColor; }
+.cqa .ring div { background: var(--card); box-shadow: none; }
+.cqa .ring b { color: var(--ink); background: none; -webkit-text-fill-color: currentColor; }
 
-.cr { border-top: 1px solid var(--line); }
+.cqa .cr { border-top: 1px solid var(--line); }
 
-.cr-t i { background: #e9f1eb; color: var(--gd); border: 0; box-shadow: none; }
-.cr-t i.no { background: #f6e8e4; color: var(--bad); }
-.cr-t i.na { background: #efefeb; color: var(--mut); }
-.cr-t em { color: var(--ink); font-weight: 600; }
+.cqa .cr-t i { background: #e9f1eb; color: var(--gd); border: 0; box-shadow: none; }
+.cqa .cr-t i.no { background: #f6e8e4; color: var(--bad); }
+.cqa .cr-t i.na { background: #efefeb; color: var(--mut); }
+.cqa .cr-t em { color: var(--ink); font-weight: 600; }
 
 /* ---------- апелляции ---------- */
-.ap .row { background: #f6f6f3; border: 0; border-radius: 8px; box-shadow: none; }
-.dash { background: transparent; border: 1px dashed #d6d6cf; border-radius: 10px; color: var(--mut); }
+.cqa .ap .row { background: #f6f6f3; border: 0; border-radius: 8px; box-shadow: none; }
+.cqa .dash { background: transparent; border: 1px dashed #d6d6cf; border-radius: 10px; color: var(--mut); }
 
 /* ---------- модальное окно ---------- */
-.ov { background: rgba(31, 34, 32, .28); }
+.cqa .ov { background: rgba(31, 34, 32, .28); }
 
-.mdl {
+.cqa .mdl {
     background: var(--card);
     border: 1px solid var(--line);
     border-radius: 12px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, .12);
 }
 
-.mdl .q { background: var(--hl); color: var(--ink); border: 0; border-radius: 8px; }
+.cqa .mdl .q { background: var(--hl); color: var(--ink); border: 0; border-radius: 8px; }
 
 /* ---------- адаптив ---------- */
 @media (max-width: 900px) {
-    .main { padding: 18px; }
+    .cqa .main { padding: 18px; }
 
-    .side {
+    .cqa .side {
         position: static;
         height: auto;
         margin: 0;
@@ -1585,7 +1543,7 @@ input[type=checkbox] { accent-color: var(--g); }
    ===================================================================== */
 @property --p { syntax: "<number>"; inherits: false; initial-value: 0 }
 
-html { scroll-behavior: smooth; }
+.cqa { scroll-behavior: smooth; }
 
 @keyframes fadeUp {
     from { opacity: 0; transform: translateY(8px); }
@@ -1605,69 +1563,69 @@ html { scroll-behavior: smooth; }
 @keyframes ringFill { from { --p: 0; } }
 
 /* --- появление экрана при переключении вкладки --- */
-.vw .head, .vw .card, .dl, .cl {
+.cqa .vw .head, .cqa .vw .card, .cqa .dl, .cqa .cl {
     animation: fadeUp .4s ease-out both;
 }
 
 /* каскад: карточки списков появляются друг за другом (задержки из базы .07с шаг) */
-.grid .left  { animation-delay: .06s !important; }
-.grid .right { animation-delay: .12s !important; }
-.grid .foot  { animation-delay: .18s !important; }
+.cqa .grid .left { animation-delay: .06s !important; }
+.cqa .grid .right { animation-delay: .12s !important; }
+.cqa .grid .foot { animation-delay: .18s !important; }
 
 /* --- реплики чата и критерии --- */
-.m { animation: fadeUp .35s ease-out both; transition: background .25s; }
-.chat .m:nth-child(1) { animation-delay: .10s; }
-.chat .m:nth-child(2) { animation-delay: .15s; }
-.chat .m:nth-child(3) { animation-delay: .20s; }
-.chat .m:nth-child(4) { animation-delay: .25s; }
-.chat .m:nth-child(5) { animation-delay: .30s; }
-.chat .m:nth-child(n+6) { animation-delay: .35s; }
+.cqa .m { animation: fadeUp .35s ease-out both; transition: background .25s; }
+.cqa .chat .m:nth-child(1) { animation-delay: .10s; }
+.cqa .chat .m:nth-child(2) { animation-delay: .15s; }
+.cqa .chat .m:nth-child(3) { animation-delay: .20s; }
+.cqa .chat .m:nth-child(4) { animation-delay: .25s; }
+.cqa .chat .m:nth-child(5) { animation-delay: .30s; }
+.cqa .chat .m:nth-child(n+6) { animation-delay: .35s; }
 
-.cr { animation: fadeUp .35s ease-out both; }
-.cr:nth-child(3) { animation-delay: .18s; }
-.cr:nth-child(4) { animation-delay: .24s; }
-.cr:nth-child(5) { animation-delay: .30s; }
+.cqa .cr { animation: fadeUp .35s ease-out both; }
+.cqa .cr:nth-child(3) { animation-delay: .18s; }
+.cqa .cr:nth-child(4) { animation-delay: .24s; }
+.cqa .cr:nth-child(5) { animation-delay: .30s; }
 
 /* --- кольцо оценки: заполняется до значения --- */
-.ring { animation: fadeIn .4s ease-out .15s both, ringFill 1.1s cubic-bezier(.2, .7, .2, 1) .2s both; }
+.cqa .ring { animation: fadeIn .4s ease-out .15s both, ringFill 1.1s cubic-bezier(.2, .7, .2, 1) .2s both; }
 
 /* --- модальное окно --- */
-.ov { animation: fadeIn .2s ease-out both; }
-.mdl { animation: popIn .25s ease-out both; }
+.cqa .ov { animation: fadeIn .2s ease-out both; }
+.cqa .mdl { animation: popIn .25s ease-out both; }
 
 /* --- отклик на наведение и нажатие --- */
-.dl, .cl {
+.cqa .dl, .cqa .cl {
     transition: border-color .2s, box-shadow .2s, translate .2s ease-out;
 }
 
-.dl:hover {
+.cqa .dl:hover {
     border-color: #d3d3cc;
     box-shadow: 0 2px 10px rgba(0, 0, 0, .04);
     translate: 0 -1px;
 }
 
-.cl:focus-within { border-color: #d3d3cc; box-shadow: 0 2px 10px rgba(0, 0, 0, .04); }
+.cqa .cl:focus-within { border-color: #d3d3cc; box-shadow: 0 2px 10px rgba(0, 0, 0, .04); }
 
-.btn, .chip, .pp, .pin {
+.cqa .btn, .cqa .chip, .cqa .pp, .cqa .pin {
     transition: background .15s, border-color .15s, color .15s, scale .15s ease-out;
 }
 
-.btn:hover, .pp:hover { scale: 1.02; }
-.btn:active, .chip:active, .pp:active { scale: .97; }
-.pin:hover { scale: 1.3; }
+.cqa .btn:hover, .cqa .pp:hover { scale: 1.02; }
+.cqa .btn:active, .cqa .chip:active, .cqa .pp:active { scale: .97; }
+.cqa .pin:hover { scale: 1.3; }
 
-.side label { transition: background .2s, color .2s, translate .2s ease-out; }
-.side label:hover { translate: 2px 0; }
+.cqa .side label { transition: background .2s, color .2s, translate .2s ease-out; }
+.cqa .side label:hover { translate: 2px 0; }
 
-.in, select, textarea { transition: border-color .2s, box-shadow .2s, background .2s; }
-.in:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px rgba(63, 122, 90, .12); }
+.cqa .in, .cqa select, .cqa textarea { transition: border-color .2s, box-shadow .2s, background .2s; }
+.cqa .in:focus, .cqa select:focus, .cqa textarea:focus { box-shadow: 0 0 0 3px rgba(63, 122, 90, .12); }
 
-.cr { transition: border-color .2s; }
+.cqa .cr { transition: border-color .2s; }
 
 /* --- без анимации по запросу системы --- */
 @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    *, *::before, *::after {
+    .cqa { scroll-behavior: auto; }
+    .cqa *, .cqa *::before, .cqa *::after {
         animation: none !important;
         transition: none !important;
     }
