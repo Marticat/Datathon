@@ -126,3 +126,9 @@ body:has(> [data-cqa]) { margin: 0; background: #f7f7f4; }
 .cqa .cr.open .cr-t .chev { transform: rotate(180deg); }
 .cqa .cr .cr-d { display: none; }
 .cqa .cr.open .cr-d { display: block; }
+
+/* значок N/A: ровная чёрточка по центру вместо символа «–» */
+.cqa .cr-t i.na:empty::before { content: ""; display: block; width: 10px; height: 2px; border-radius: 1px; background: currentColor; }
+/* стрелка раскрытия: уголок из рамки, ровно по центру строки */
+.cqa .cr-t .chev { width: 8px; height: 8px; flex: none; margin: 0 3px 3px 4px; border-right: 2px solid var(--mut); border-bottom: 2px solid var(--mut); transform: rotate(45deg); }
+.cqa .cr.open .cr-t .chev { transform: rotate(225deg); margin: 3px 3px 0 4px; }

@@ -169,7 +169,7 @@
     }
     /* значок критерия в стиле макета: ✓ полный балл, ✕ ноль или нарушение, – N/A, ◐ частично */
     function mark(c, v) {
-      if (v === 'na') return ['na', '–'];
+      if (v === 'na') return ['na', ''];  /* чёрточка рисуется в CSS, чтобы стоять ровно по центру */
       if (c.gross) return v ? ['no', '!'] : ['', '✓'];
       var n = c.type === 'binary' ? v : v / maxOf(c);
       return n >= 1 ? ['', '✓'] : n <= 0 ? ['no', '✕'] : ['part', '◐'];
@@ -337,7 +337,7 @@
       /* свёрнуто по умолчанию: видны значок, название и баллы; подробности раскрываются по клику */
       var key = d.id + '|' + c.id, open = !!(state.openCrit && state.openCrit[key]) || state.focus === key || state.form === key;
       return '<div class="cr' + (open ? ' open' : '') + (state.focus === key ? ' focus' : '') + (c.gross ? ' gross' : '') + '" data-crit="' + esc(c.id) + '">' +
-        '<button class="cr-t" type="button" data-act="crit-toggle" data-key="' + esc(key) + '" aria-expanded="' + open + '"><i class="' + mk[0] + '">' + mk[1] + '</i><span>' + esc(c.title) + '</span><em>' + pts + '</em><b class="chev" aria-hidden="true">⌄</b></button>' +
+        '<button class="cr-t" type="button" data-act="crit-toggle" data-key="' + esc(key) + '" aria-expanded="' + open + '"><i class="' + mk[0] + '">' + mk[1] + '</i><span>' + esc(c.title) + '</span><em>' + pts + '</em><b class="chev" aria-hidden="true"></b></button>' +
         '<div class="cr-d"><p class="ans">Ответ: <b>' + esc(ans(c, x.fin)) + '</b>' + (changed ? ' · <s>было: ' + esc(ans(c, x.orig)) + '</s>' : '') +
         (c.gross ? ' · без баллов, отмечается отдельно' : ' · вес ' + c.weight) + '</p>' +
         (r.v === 'na' ? '<p><b>Почему N/A.</b> ' + esc(r.na || '') + (c.naRule ? ' <span class="rule">Условие: ' + esc(c.naRule) + '</span>' : '') + '</p>' : '<p>' + esc(r.why) + '</p>') +
