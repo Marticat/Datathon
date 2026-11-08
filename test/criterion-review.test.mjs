@@ -22,6 +22,15 @@ function transport(overrides={},requests=[]){return async(url,options)=>{
 };}
 function only(id){const r=defaultRubric();r.criteria=r.criteria.filter(c=>c.id===id);return r;}
 
+test('focused review honors the configured context without truncating the transcript',async()=>{
+ const previous=process.env.OLLAMA_CONTEXT;process.env.OLLAMA_CONTEXT='32768';
+ try {
+  const requests=[];await reviewDefaultCriteria(conversation,defaultRubric(),settings,{fetcher:transport({},requests)});
+  assert.equal(requests.length,3);
+  for(const {request} of requests){assert.equal(request.options.num_ctx,32768);assert.equal(request.truncate,false);assert.equal(request.shift,false);assert.deepEqual(JSON.parse(request.messages[1].content).transcript,conversation.transcript);}
+ }finally{if(previous===undefined)delete process.env.OLLAMA_CONTEXT;else process.env.OLLAMA_CONTEXT=previous;}
+});
+
 test('reviews only three matching semantics and carries full input, evidence, deterministic explanations and usage',async()=>{
  const requests=[];const result=await reviewDefaultCriteria(conversation,defaultRubric(),settings,{fetcher:transport({},requests)});
  assert.equal(result.mode,'focused-default-v1');
