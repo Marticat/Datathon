@@ -160,7 +160,7 @@
 
     /* --- расчёт --- */
     function rnd(n) { if (n == null) return null; var p = Math.pow(10, state.checklist.rounding); return Math.round(n * p) / p; }
-    function fmt(n) { return n == null ? '—' : String(rnd(n)).replace('.', ','); }
+    function fmt(n) { return n == null ? '-' : String(rnd(n)).replace('.', ','); }
     function ans(c, v) {
       if (v === 'na') return 'N/A';
       if (c.gross) return v ? 'Выявлено' : 'Не выявлено';
@@ -229,10 +229,10 @@
     /* ---------- Диалоги ---------- */
     function dialogsView() {
       var pendingDialogs = state.dialogs.filter(function (d) { return rowsFor(d).some(function (x) { return x.pending; }); }).length;
-      var h = head('Диалоги', 'Выберите диалог и откройте его анализ · набор ' + esc(state.group || '—') + ' · чек-лист «' + esc(state.checklist.name) + '»',
+      var h = head('Диалоги', 'Выберите диалог и откройте его анализ · набор ' + esc(state.group || 'не выбран') + ' · чек-лист «' + esc(state.checklist.name) + '»',
         state.dialogs.length ? '<button class="btn" data-act="ck-apply"' + (pendingDialogs ? '' : ' disabled') + '>' + (pendingDialogs ? 'Оценить неоценённые · ' + pendingDialogs : 'Все диалоги оценены') + '</button>' : '');
       if (!state.dialogs.length) {
-        return h + '<div class="dash"><p>Диалогов пока нет.</p><p>Загрузите JSON с диалогами — кнопка «Загрузить JSON» слева внизу. Для звонков в записи укажите audio_url.</p>' +
+        return h + '<div class="dash"><p>Диалогов пока нет.</p><p>Загрузите JSON с диалогами кнопкой «Загрузить JSON» слева внизу. Для звонков в записи укажите audio_url.</p>' +
           '<p><button class="btn" type="button" data-act="upload">Загрузить JSON</button></p></div>';
       }
       var shown = shownDialogs();
@@ -298,7 +298,7 @@
       return '<div id="player"><div class="pl"><button class="btn pp" type="button" id="cqa-play" data-act="play"' + (d.audio ? '' : ' disabled') + ' aria-label="Воспроизвести">▶</button>' +
         '<div class="wv" id="cqa-wave" data-act="wave" title="Перейти к месту записи">' + bars(d) + '<div class="reg" id="cqa-region" hidden></div>' + pins + '</div>' +
         '<span id="ptime">00:00 / ' + mmss(d.duration) + '</span></div>' +
-        '<p class="hint">' + (d.audio ? 'Метки на дорожке — реплики из обоснования оценки. Нажатие на метку или время реплики переводит запись на это место.' : 'Аудиозапись не приложена: дорожка показывает, где в разговоре звучат реплики.') + '</p></div>';
+        '<p class="hint">' + (d.audio ? 'Метки на дорожке показывают реплики из обоснования оценки. Нажатие на метку или время реплики переводит запись на это место.' : 'Аудиозапись не приложена: дорожка показывает, где в разговоре звучат реплики.') + '</p></div>';
     }
     function chatHTML(d) {
       return '<div class="chat' + (d.voice ? ' call' : '') + '" id="cqa-tr">' + d.msgs.map(function (m, i) {
@@ -330,7 +330,7 @@
           '<p>Для текущей версии чек-листа оценки ещё нет.</p></div>';
       }
       var mk = mark(c, x.fin), changed = x.fin !== x.orig;
-      var pts = c.gross ? (x.fin ? 'нарушение' : 'нет') : x.fin === 'na' ? 'N/A' : p ? fmt(p.pts) + ' / ' + fmt(p.eff) : '—';
+      var pts = c.gross ? (x.fin ? 'нарушение' : 'нет') : x.fin === 'na' ? 'N/A' : p ? fmt(p.pts) + ' / ' + fmt(p.eff) : '-';
       return '<div class="cr' + (state.focus === d.id + '|' + c.id ? ' focus' : '') + (c.gross ? ' gross' : '') + '" data-crit="' + esc(c.id) + '">' +
         '<div class="cr-t"><i class="' + mk[0] + '">' + mk[1] + '</i><span>' + esc(c.title) + '</span><em>' + pts + '</em></div>' +
         '<p class="ans">Ответ: <b>' + esc(ans(c, x.fin)) + '</b>' + (changed ? ' · <s>было: ' + esc(ans(c, x.orig)) + '</s>' : '') +
@@ -355,7 +355,7 @@
         var sr = rows.filter(function (x) { return x.c.section === s.id; });
         if (!sr.length) return;
         var t = fin.bySec[s.id];
-        h += '<h4 class="grp sec">' + esc(s.title) + '<span>' + (t ? fmt(t.pts) + ' / ' + fmt(t.eff) : '—') + '</span></h4>' +
+        h += '<h4 class="grp sec">' + esc(s.title) + '<span>' + (t ? fmt(t.pts) + ' / ' + fmt(t.eff) : '-') + '</span></h4>' +
           sr.map(function (x) { return critHTML(d, x, fin); }).join('');
       });
       return h;
@@ -413,12 +413,12 @@
         return '<div class="dl"><b>' + esc(it.d.id) + ' · ' + esc(it.c.title) + '<br><small>' + esc(it.ap.comment) + '</small></b>' +
           '<span class="tag' + (it.ap.dec ? ' ok' : ' warn') + '">' + st + '</span>' +
           '<button class="btn' + (it.ap.dec ? ' line' : '') + '" data-act="goto-appeal" data-d="' + esc(it.d.id) + '" data-c="' + esc(it.c.id) + '">' + (it.ap.dec ? 'Открыть' : 'Рассмотреть') + '</button></div>';
-      }).join('') + (items.length ? '' : '<div class="dash">Пока пусто — новые апелляции появятся здесь</div>') + '</div>';
+      }).join('') + (items.length ? '' : '<div class="dash">Пока пусто. Новые апелляции появятся здесь</div>') + '</div>';
     }
 
     /* ---------- Чек-листы ----------
-       Каждый сохранённый вариант — неизменяемая версия на сервере; версии с одним названием образуют один чек-лист.
-       Стандарт (официальный чек-лист) нельзя менять и удалять — его можно скопировать. Сервер не удаляет версии,
+       Каждый сохранённый вариант: неизменяемая версия на сервере; версии с одним названием образуют один чек-лист.
+       Стандарт (официальный чек-лист) нельзя менять и удалять, его можно скопировать. Сервер не удаляет версии,
        поэтому «Удалить» скрывает чек-лист из списка в этом браузере (история оценок на сервере сохраняется). */
     var LS_HIDDEN = 'cqa.hiddenChecklists', LS_RUBRIC = 'cqa.rubricId';
     function lsGet(k, d) { try { var v = window.localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
@@ -462,15 +462,29 @@
       return s.id;
     }
 
-    function listsHTML() {
-      var cur = state.newList ? null : state.checklist.name;
-      return '<div class="lists">' + visibleLists().map(function (l) {
-        var on = l.name === cur;
-        return '<div class="dl' + (on ? ' cur' : '') + '"><b>' + esc(l.name) + '<br><small>версия ' + l.versions + ' · критериев: ' + l.criteria + '</small></b>' +
-          (l.standard ? '<span class="tag">Стандарт</span>' : '') +
-          (on ? '<span class="tag ok">Используется для оценки</span>' : '<button class="btn line" type="button" data-act="list-select" data-id="' + esc(l.id) + '">Выбрать</button>') +
+    /* всплывающее окно «Список чек-листов»: выбрать готовый, создать новый, удалить (с подтверждением в окне) */
+    function listsModalHTML() {
+      if (!state.listsOpen) return '';
+      var cur = state.checklist.name;
+      var rows = visibleLists().map(function (l) {
+        var on = l.name === cur, ask = state.listsConfirm === l.name;
+        var row = '<div class="dl' + (on ? ' cur' : '') + '"><b>' + esc(l.name) + '<br><small>версия ' + l.versions + ' · критериев: ' + l.criteria + '</small></b>' +
+          (l.standard ? '<span class="tag">Стандарт</span>' : '');
+        if (ask) {
+          return row + '<span class="ask">Удалить из списка? Оценки останутся в истории.</span>' +
+            '<button class="btn" type="button" data-act="list-delete-yes" data-name="' + esc(l.name) + '">Да, удалить</button>' +
+            '<button class="btn line" type="button" data-act="list-delete-no">Отмена</button></div>';
+        }
+        return row + (on && !state.newList ? '<span class="tag ok">Выбран для оценки</span>' : '<button class="btn" type="button" data-act="list-select" data-id="' + esc(l.id) + '">Выбрать</button>') +
           (l.standard ? '' : '<button class="chip" type="button" data-act="list-delete" data-name="' + esc(l.name) + '">Удалить</button>') + '</div>';
-      }).join('') + '</div>';
+      }).join('');
+      return '<div class="ov on"><button class="ov-bg" type="button" data-act="lists-close" aria-label="Закрыть"></button>' +
+        '<div class="mdl lists-mdl" role="dialog" aria-modal="true" aria-labelledby="cqa-lt"><h3 id="cqa-lt">Список чек-листов</h3>' +
+        '<p>Выберите готовый чек-лист для оценки или создайте свой.' + (state.newList ? ' Новый чек-лист ещё не сохранён: выбор готового отменит его создание.' : '') + '</p>' +
+        '<div class="lists">' + rows + '</div>' +
+        '<div class="row"><button class="btn line" type="button" data-act="list-new">+ Новый с нуля</button>' +
+        '<button class="btn line" type="button" data-act="list-copy">Копия выбранного</button>' +
+        '<button class="btn" type="button" data-act="lists-close">Закрыть</button></div></div></div>';
     }
 
     function checklistView() {
@@ -496,7 +510,7 @@
             '<button class="chip" type="button" data-act="ck-del" data-i="' + i + '"' + (dr.criteria.length < 2 ? ' disabled' : '') + '>Удалить</button></div>' +
             '<div class="cf sub"><label>Секция <input class="in" list="cqa-sections" value="' + esc(s.title) + '" data-ck="section" data-i="' + i + '" aria-label="Секция"></label></div>' +
             steps +
-            '<textarea class="in" aria-label="Формулировка" placeholder="Правило оценки — его читает модель" data-ck="' + (c.type === 'scale' ? 'base' : 'desc') + '" data-i="' + i + '">' + esc(c.type === 'scale' ? c._base : c.desc || '') + '</textarea>' +
+            '<textarea class="in" aria-label="Формулировка" placeholder="Правило оценки (его читает модель)" data-ck="' + (c.type === 'scale' ? 'base' : 'desc') + '" data-i="' + i + '">' + esc(c.type === 'scale' ? c._base : c.desc || '') + '</textarea>' +
             (c.naAllowed ? '<span class="cap">Когда ставится N/A</span><textarea class="in na" aria-label="Условие N/A" placeholder="Когда ставится N/A (обязательно)" data-ck="naRule" data-i="' + i + '">' + esc(c.naRule || '') + '</textarea>' : '') +
             '</div>';
         }).join('');
@@ -504,9 +518,9 @@
       var sub = state.newList ? 'Новый чек-лист · ещё не сохранён · критериев: ' + dr.criteria.length
         : esc(state.checklist.name) + ' · версия ' + listVersion() + ' · критериев: ' + dr.criteria.length + (dirty ? ' · есть несохранённые правки' : '');
       return head('Чек-листы', sub,
-          '<button class="btn" type="button" data-act="list-new">+ Новый с нуля</button>' +
-          '<button class="btn line" type="button" data-act="list-copy"' + (state.newList ? ' disabled' : '') + '>Копия выбранного</button>') +
-        listsHTML() +
+          '<button class="btn" type="button" data-act="lists-open">Список чек-листов</button>' +
+          '<button class="btn line" type="button" data-act="list-new">+ Новый с нуля</button>' +
+          '<button class="btn line" type="button" data-act="list-copy">Копия выбранного</button>') +
         '<div id="clist"><div class="tools bar">' +
         '<label class="chk name">Название <input class="in" id="cqa-cl-name" data-ck="name" value="' + esc(dr.name || '') + '" placeholder="Название чек-листа"' + (locked ? ' disabled' : '') + '></label>' +
         '<span id="cqa-wsum" class="tag ' + (sum === 100 ? 'ok' : 'warn') + '">Сумма весов: ' + String(sum).replace('.', ',') + '</span>' +
@@ -515,10 +529,10 @@
         '<button class="btn line" type="button" data-act="ck-reset"' + (dirty ? '' : ' disabled') + '>' + (state.newList ? 'Отменить создание' : 'Отменить правки') + '</button>' +
         '<button class="btn" type="button" data-act="ck-save"' + (dirty ? '' : ' disabled') + '>' + (state.newList ? 'Создать чек-лист' : 'Сохранить чек-лист') + '</button>' +
         '<button class="btn line" type="button" data-act="ck-apply"' + (state.newList ? ' disabled' : '') + '>Применить к диалогам</button></div>' +
-        (locked ? '<p class="note">Это стандарт — он защищён от изменений. Нажмите «Копия выбранного», чтобы сделать свой вариант на его основе, или «Новый с нуля».</p>' : '') +
+        (locked ? '<p class="note">Это стандарт, он защищён от изменений. Нажмите «Копия выбранного», чтобы сделать свой вариант на его основе, или «Новый с нуля».</p>' : '') +
         '<datalist id="cqa-sections">' + titles + '</datalist>' +
-        '<fieldset class="fs"' + (locked ? ' disabled' : '') + '>' + (body || '<div class="dash">Критериев пока нет — нажмите «+ Критерий».</div>') + '</fieldset>' +
-        '<div class="card calc"><h3>Порядок расчёта</h3><p>1. N/A ставится только там, где он разрешён и выполнено условие. 2. «Да» даёт полный вес, «Нет» — ноль, для шкалы выбирается одна из ступеней. ' +
+        '<fieldset class="fs"' + (locked ? ' disabled' : '') + '>' + (body || '<div class="dash">Критериев пока нет. Нажмите «+ Критерий».</div>') + '</fieldset>' +
+        '<div class="card calc"><h3>Порядок расчёта</h3><p>1. N/A ставится только там, где он разрешён и выполнено условие. 2. «Да» даёт полный вес, «Нет» даёт ноль, для шкалы выбирается одна из ступеней. ' +
         '3. Шкальные баллы пересчитываются пропорционально весу: верхняя ступень даёт полный вес. 4. Критерии с N/A исключаются, их вес перераспределяется между применимыми, максимум остаётся 100. ' +
         '5. Итог округляется по настройке; грубые ошибки отмечаются отдельно.</p>' +
         '<p class="small">ИИ оценивает диалоги по выбранному чек-листу. Сохранение создаёт новую версию; «Применить к диалогам» запускает оценку по ней (один запрос к модели на диалог). «Удалить» скрывает чек-лист из списка в этом браузере, история оценок на сервере сохраняется.</p></div></div>';
@@ -527,7 +541,7 @@
       var dr = state.draft, i, c, name = String(dr.name || '').trim();
       if (!name) return 'Укажите название чек-листа';
       var renamed = state.newList || name !== state.checklist.name;
-      if (renamed && visibleLists().some(function (l) { return l.name === name; })) return 'Чек-лист «' + name + '» уже есть — выберите другое название';
+      if (renamed && visibleLists().some(function (l) { return l.name === name; })) return 'Чек-лист «' + name + '» уже есть, выберите другое название';
       if (!dr.criteria.length) return 'Добавьте хотя бы один критерий';
       for (i = 0; i < dr.criteria.length; i++) {
         c = dr.criteria[i];
@@ -573,7 +587,7 @@
     function render() {
       var scroll = window.scrollY;
       root.classList.add('cqa');
-      root.innerHTML = '<div class="shell">' + sideHTML() + '<main class="main">' + bodyHTML() + '</main></div>' + modalHTML() +
+      root.innerHTML = '<div class="shell">' + sideHTML() + '<main class="main">' + bodyHTML() + '</main></div>' + modalHTML() + listsModalHTML() +
         (state.toast ? '<div class="toast" role="status">' + esc(state.toast) + '</div>' : '');
       window.scrollTo(0, scroll);
       post();
@@ -779,17 +793,31 @@
       } else if (a === 'ck-apply') {
         if (state.view === 'checklist' && isDirty()) { toast('Сначала сохраните чек-лист.'); return; }
         applyAll();
+      } else if (a === 'lists-open') {
+        state.listsOpen = true; state.listsConfirm = null; render();
+      } else if (a === 'lists-close') {
+        state.listsOpen = false; state.listsConfirm = null; render();
       } else if (a === 'list-select') {
-        if (isDirty() && !window.confirm('Несохранённые правки чек-листа пропадут. Продолжить?')) return;
-        load(state.group, el.getAttribute('data-id'));
+        /* выбрать готовый можно всегда: незавершённое создание или правки просто отменяются */
+        var pick = el.getAttribute('data-id'), dropped = isDirty();
+        state.listsOpen = false; state.listsConfirm = null;
+        if (pick === state.checklist.id) {
+          state.newList = false; state.draft = clone(state.checklist);
+          toast((dropped ? 'Изменения отменены. ' : '') + 'Выбран чек-лист «' + state.checklist.name + '».'); render(); return;
+        }
+        if (dropped) toast('Несохранённые изменения отменены.');
+        load(state.group, pick);
       } else if (a === 'list-delete') {
+        state.listsConfirm = el.getAttribute('data-name'); render();
+      } else if (a === 'list-delete-no') {
+        state.listsConfirm = null; render();
+      } else if (a === 'list-delete-yes') {
         var nm = el.getAttribute('data-name');
-        if (!window.confirm('Убрать чек-лист «' + nm + '» из списка? Оценки по нему останутся в истории на сервере.')) return;
-        setHidden(nm, true);
+        setHidden(nm, true); state.listsConfirm = null;
         if (nm === state.checklist.name && standardList()) { toast('Чек-лист «' + nm + '» удалён из списка. Выбран стандарт.'); load(state.group, standardList().id); }
         else { toast('Чек-лист «' + nm + '» удалён из списка.'); render(); }
       } else if (a === 'list-new' || a === 'list-copy') {
-        if (isDirty() && !window.confirm('Несохранённые правки чек-листа пропадут. Продолжить?')) return;
+        state.listsOpen = false; state.listsConfirm = null;
         var base = clone(state.checklist);
         if (a === 'list-new') {
           base.sections = [{ id: 's1', title: 'Общее' }];
@@ -806,7 +834,7 @@
     });
 
     root.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && state.form) { state.form = null; render(); }
+      if (e.key === 'Escape' && (state.form || state.listsOpen)) { state.form = null; state.listsOpen = false; state.listsConfirm = null; render(); }
     });
 
     root.addEventListener('input', function (e) {

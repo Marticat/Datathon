@@ -105,10 +105,13 @@ body:has(> [data-cqa]) { margin: 0; background: #f7f7f4; }
   .cqa .ap .row b { min-width: 0; }
 }
 
-/* ---------- список чек-листов ---------- */
-.cqa .lists { margin-bottom: 18px; }
-.cqa .lists .dl { padding: 10px 16px; }
+/* ---------- список чек-листов (всплывающее окно) ---------- */
+.cqa .lists-mdl { width: min(720px, 94vw); max-height: 86vh; overflow: auto; }
+.cqa .lists { margin: 12px 0 4px; display: grid; gap: 8px; }
+.cqa .lists .dl { margin: 0; padding: 10px 14px; animation: none; }
 .cqa .lists .dl .chip { padding: 6px 12px; }
+.cqa .lists .ask { color: var(--bad); font-size: 13px; font-weight: 600; }
+.cqa .lists-mdl .row { flex-wrap: wrap; }
 .cqa #clist .bar .name { flex: 1 1 260px; }
 .cqa #clist .bar .name .in { flex: 1; min-width: 0; font-weight: 600; color: var(--ink); }
 .cqa #clist .note { margin: 0 0 10px; padding: 10px 14px; border-radius: 8px; background: var(--hl); color: var(--ink); font-size: 14px; }
