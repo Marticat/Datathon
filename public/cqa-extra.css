@@ -22,7 +22,6 @@ body:has(> [data-cqa]) { margin: 0; background: #f7f7f4; }
 .cqa .side-n { min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--bad); color: #fff; font-size: 12px; font-weight: 700; text-align: center; }
 .cqa .side-b { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); display: grid; gap: 6px; }
 .cqa .side-b .btn { width: 100%; }
-.cqa .side-b p { margin: 0; color: var(--mut); font-size: 12px; line-height: 1.4; }
 .cqa .file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
 /* ---------- общие ---------- */
@@ -102,7 +101,6 @@ body:has(> [data-cqa]) { margin: 0; background: #f7f7f4; }
   .cqa .side { flex-direction: row; flex-wrap: wrap; align-items: center; }
   .cqa .side-i { width: auto; white-space: nowrap; }
   .cqa .side-b { flex-basis: 100%; margin-top: 6px; padding-top: 10px; }
-  .cqa .side-b p { display: none; }
   .cqa .filters .cnt { margin-left: 0; }
   .cqa .ap .row b { min-width: 0; }
 }

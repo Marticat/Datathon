@@ -210,8 +210,7 @@
       return '<nav class="side" aria-label="Разделы CQA"><h1>CQA</h1>' +
         it('dialogs', 'Диалоги') + it('checklist', 'Чек-листы') + it('appeals', 'Апелляции', n || '') + it('analysis', 'Анализ', '', !state.did) +
         '<div class="side-b"><input class="file" id="cqa-file" type="file" accept=".json,application/json" data-upload="1" tabindex="-1" aria-hidden="true">' +
-        '<button class="btn line" type="button" data-act="upload">Загрузить JSON</button>' +
-        '<p>Диалоги в формате API организаторов или массив записей. Для звонков укажите audio_url — запись откроется в плеере.</p></div></nav>';
+        '<button class="btn line" type="button" data-act="upload" title="Диалоги в формате API организаторов или массив записей; у звонков audio_url">Загрузить JSON</button></div></nav>';
     }
 
     function head(title, sub, tools) {
