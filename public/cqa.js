@@ -221,7 +221,7 @@
       return '<nav class="side" aria-label="Разделы CQA"><h1>CQA</h1>' +
         it('dialogs', 'Диалоги') + it('checklist', 'Чек-листы') + it('appeals', 'Апелляции', n || '') + it('analysis', 'Анализ', '', !state.did) +
         '<div class="side-b"><input class="file" id="cqa-file" type="file" accept=".json,application/json" data-upload="1" tabindex="-1" aria-hidden="true">' +
-        '<button class="btn line" type="button" data-act="upload" title="Диалоги в формате API организаторов или массив записей; у звонков audio_url">Загрузить JSON</button></div></nav>';
+        '<button class="btn line" type="button" data-act="upload" title="Диалоги в формате API организаторов или массив записей; у звонков audio_url">Загрузить диалог</button></div></nav>';
     }
 
     function head(title, sub, tools) {
@@ -234,8 +234,8 @@
       var h = head('Диалоги', 'Выберите диалог и откройте его анализ · набор ' + esc(state.group || 'не выбран') + ' · чек-лист «' + esc(state.checklist.name) + '»',
         state.dialogs.length ? '<button class="btn" data-act="ck-apply"' + (pendingDialogs ? '' : ' disabled') + '>' + (pendingDialogs ? 'Оценить неоценённые · ' + pendingDialogs : 'Все диалоги оценены') + '</button>' : '');
       if (!state.dialogs.length) {
-        return h + '<div class="dash"><p>Диалогов пока нет.</p><p>Загрузите JSON с диалогами кнопкой «Загрузить JSON» слева внизу. Для звонков в записи укажите audio_url.</p>' +
-          '<p><button class="btn" type="button" data-act="upload">Загрузить JSON</button></p></div>';
+        return h + '<div class="dash"><p>Диалогов пока нет.</p><p>Загрузите JSON с диалогами кнопкой «Загрузить диалог» слева внизу. Для звонков в записи укажите audio_url.</p>' +
+          '<p><button class="btn" type="button" data-act="upload">Загрузить диалог</button></p></div>';
       }
       var shown = shownDialogs();
       var groups = state.groups || [];
